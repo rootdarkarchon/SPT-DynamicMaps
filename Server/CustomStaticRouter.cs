@@ -63,7 +63,7 @@ public class CustomStaticRouter : StaticRouter
     {
         try
         {
-            logger.Info($"Call from {session}");
+            logger.Debug($"Call from {session}");
             var profile = saveServer.GetProfile(session);
             var openQuests = profile.CharacterData?.PmcData?.Quests?
                 .Where(q => q.Status == SPTarkov.Server.Core.Models.Enums.QuestStatusEnum.Started).ToList()
@@ -71,7 +71,7 @@ public class CustomStaticRouter : StaticRouter
             if (!openQuests.Any())
                 return new ValueTask<string>(JsonSerializer.Serialize(new List<ConditionData>()));
 
-            logger.Info($"Found {openQuests.Count} open quests");
+            logger.Debug($"Found {openQuests.Count} open quests");
 
             List<ConditionData> conditionData = [];
             var questData = database.GetQuests().Where(k => openQuests.Select(q => q.QId).Contains(k.Key)).ToList();
@@ -86,12 +86,12 @@ public class CustomStaticRouter : StaticRouter
                 }
             }
 
-            logger.Info($"Total {conditionData.Count} items to be found");
+            logger.Debug($"Total {conditionData.Count} items to be found");
 
             var items = database.GetItems().ToList().Where(k => k.Value.IsQuestItem() && conditionData.Any(c => c.ItemId == k.Value.Id.ToString())).Select(k => k.Value).ToList();
             conditionData.RemoveAll(c => !items.Select(k => k.Id).Contains(c.ItemId));
 
-            logger.Info($"Reduced to {conditionData.Count} with quest items from db");
+            logger.Debug($"Reduced to {conditionData.Count} with quest items from db");
 
             List<string> mapNames = new()
             {
@@ -117,7 +117,7 @@ public class CustomStaticRouter : StaticRouter
 
             foreach (var item in conditionData)
             {
-                logger.Info($"Quest {item.QuestId}: Cond {item.ConditionId}, Item {item.ItemId} on {item.MapName} at Pos {item.SpawnPoint}");
+                logger.Debug($"Quest {item.QuestId}: Cond {item.ConditionId}, Item {item.ItemId} on {item.MapName} at Pos {item.SpawnPoint}");
             }
 
             return new ValueTask<string>(JsonSerializer.Serialize(conditionData));
