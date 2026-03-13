@@ -50,6 +50,7 @@ namespace DynamicMaps.UI
         private const float _scrollZoomScaler = 1.75f;
         private const float _zoomScrollTweenTime = 0.25f;
         private const float _positionTextFontSize = 15f;
+        private bool _requireLayerCheck = false;
 
         private static readonly Vector2 _levelSliderPosition = new(15f, 750f);
         private static readonly Vector2 _mapSelectDropdownPosition = new(-780f, -50f);
@@ -65,7 +66,7 @@ namespace DynamicMaps.UI
 
         public RectTransform RectTransform => gameObject.GetRectTransform();
 
-        private RectTransform _parentTransform => gameObject.transform.parent as RectTransform;
+        private RectTransform ParentTransform => gameObject.transform.parent as RectTransform;
 
         private bool _isShown = false;
 
@@ -573,7 +574,11 @@ namespace DynamicMaps.UI
             SetBackgroundRenderObjectsActive(shouldShow);
 
             // update camera layer just in case, layer may be not free anymore, worst case it'll be grass lol
-            SetCameraLayer();
+            if (_requireLayerCheck)
+            {
+                SetCameraLayer();
+                _requireLayerCheck = false;
+            }
 
             // populate map select dropdown
             _mapSelectDropdown.LoadMapDefsFromPath(_mapRelPath);
@@ -1208,7 +1213,7 @@ namespace DynamicMaps.UI
 
             _peekComponent = MapPeekComponent.Create(battleUI.gameObject, _config);
             _peekComponent.MapScreen = this;
-            _peekComponent.MapScreenTrueParent = _parentTransform;
+            _peekComponent.MapScreenTrueParent = ParentTransform;
 
             ReadConfig();
         }
@@ -1272,6 +1277,7 @@ namespace DynamicMaps.UI
             {
                 // Plugin.Log.LogInfo($"MapScreen: Resetting Map Size");
                 AdjustSizeAndPosition();
+                _requireLayerCheck = true;
             }
 
             Canvas.ForceUpdateCanvases();
