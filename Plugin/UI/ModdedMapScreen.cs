@@ -1054,8 +1054,8 @@ namespace DynamicMaps.UI
                 foreach (var layerDef in mapDef.Layers.Values)
                 {
                     // just load sprite to cache it, one a frame
-                    Plugin.Log.LogInfo($"Precaching sprite: {layerDef.ImagePath}");
-                    TextureUtils.GetOrLoadCachedSprite(layerDef.ImagePath);
+                    Plugin.Log.LogInfo($"Precaching sprite: {layerDef.SvgPath}");
+                    SvgUtils.GetOrLoadCachedSprite(layerDef.SvgPath);
                     yield return null;
                 }
             }

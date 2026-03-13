@@ -1,5 +1,6 @@
 using DynamicMaps.Data;
 using DynamicMaps.Utils;
+using Unity.VectorGraphics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,7 +26,7 @@ namespace DynamicMaps.UI.Components
         private static float _defaultLevelFallbackAlpha = 0.1f;
 
         public string Name { get; private set; }
-        public Image Image { get; private set; }
+        public Graphic Graphic { get; private set; }
         public RectTransform RectTransform => gameObject.transform as RectTransform;
 
         public int Level => _def.Level;
@@ -44,28 +45,32 @@ namespace DynamicMaps.UI.Components
             var rectTransform = go.GetRectTransform();
             var layer = go.AddComponent<MapLayer>();
 
-            // set layer size
             var size = def.ImageBounds.Max - def.ImageBounds.Min;
             var rotatedSize = MathUtils.GetRotatedRectangle(size, degreesRotation);
             rectTransform.sizeDelta = rotatedSize;
 
-            // set layer offset
             var offset = MathUtils.GetMidpoint(def.ImageBounds.Min, def.ImageBounds.Max);
             rectTransform.anchoredPosition = offset;
 
-            // set rotation to combat when we rotate the whole map content
             rectTransform.localRotation = Quaternion.Euler(0, 0, degreesRotation);
 
             layer.Name = name;
             layer._def = def;
 
-            // load image
-            layer.Image = go.AddComponent<Image>();
-            layer.Image.raycastTarget = false;
-            layer.Image.sprite = TextureUtils.GetOrLoadCachedSprite(def.ImagePath);
-            layer.Image.type = Image.Type.Simple;
+            var svgSprite = SvgUtils.GetOrLoadCachedSprite(def.SvgPath);
+            if (svgSprite != null)
+            {
+                var svgImage = go.AddComponent<SVGImage>();
+                svgImage.raycastTarget = false;
+                svgImage.preserveAspect = false;
+                svgImage.sprite = svgSprite;
 
-            return layer;
+                layer.Graphic = svgImage;
+
+                return layer;
+            }
+
+            return null;
         }
 
         public bool IsCoordinateInLayer(Vector3 coordinate)
@@ -85,8 +90,6 @@ namespace DynamicMaps.UI.Components
 
         public float GetMatchingBoundVolume(Vector3 coordinate)
         {
-            // a bit scuffed formatting
-            // this assumes that a layer wouldn't have multiple overlapping game bounds
             foreach (var gameBound in _def.GameBounds)
             {
                 if (coordinate.x > gameBound.Min.x && coordinate.x < gameBound.Max.x
@@ -131,7 +134,7 @@ namespace DynamicMaps.UI.Components
             }
 
             gameObject.SetActive(isActive);
-            Image.color = new Color(c, c, c, a);
+            Graphic.color = new Color(c, c, c, a);
         }
     }
 }

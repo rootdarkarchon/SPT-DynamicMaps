@@ -18,7 +18,7 @@
   "Layers": {
     "Underground": {
       "Level": -1,
-      "ImagePath": "Maps/Woods_TarkovData/Layers/woods_layer_-1.png",
+      "SvgPath": "Maps/Woods_TarkovData/SVG/Woods-Underground_Level.svg",
       "ImageBounds": {
         "Min": {
           "x": -756,
@@ -70,7 +70,7 @@
     },
     "Ground Level": {
       "Level": 0,
-      "ImagePath": "Maps/Woods_TarkovData/Layers/woods_layer_0.png",
+      "SvgPath": "Maps/Woods_TarkovData/SVG/Woods-Ground_Level.svg",
       "ImageBounds": {
         "Min": {
           "x": -756,
@@ -98,7 +98,7 @@
     },
     "2nd Floor": {
       "Level": 1,
-      "ImagePath": "Maps/Woods_TarkovData/Layers/woods_layer_1.png",
+      "SvgPath": "Maps/Woods_TarkovData/SVG/Woods-Second_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -756,

@@ -45,8 +45,16 @@
     <Reference Include="Sirenix.Serialization">
       <HintPath>$(TarkovManagedDir)Sirenix.Serialization.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.InternalAPIEngineBridge.003">
+      <HintPath>Resources\Unity.InternalAPIEngineBridge.003.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>$(TarkovManagedDir)Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.VectorGraphics">
+      <HintPath>Resources\Unity.VectorGraphics.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(TarkovManagedDir)UnityEngine.dll</HintPath>
@@ -95,6 +103,11 @@
     <Reference Include="spt-common">
       <HintPath>$(TarkovPluginsSPTDir)spt-common.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\Maps\Customs_TarkovDev\SVG\" />
+    <Folder Include="Resources\Maps\Factory_TarkovDev\SVG\" />
   </ItemGroup>
 
   <!-- Gets the commit hash from git -->

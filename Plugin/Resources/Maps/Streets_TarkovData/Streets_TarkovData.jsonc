@@ -18,7 +18,7 @@
   "Layers": {
     "Underground": {
       "Level": -1,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_-1.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Underground_Level.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,
@@ -58,7 +58,7 @@
     },
     "Ground Floor": {
       "Level": 0,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_0.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Ground_Level.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,
@@ -86,7 +86,7 @@
     },
     "2nd Floor": {
       "Level": 1,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_1.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Second_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,
@@ -450,7 +450,7 @@
     },
     "3rd Floor": {
       "Level": 2,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_2.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Third_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,
@@ -622,7 +622,7 @@
     },
     "4th Floor": {
       "Level": 3,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_3.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Fourth_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,
@@ -710,7 +710,7 @@
     },
     "5th Floor": {
       "Level": 4,
-      "ImagePath": "Maps/Streets_TarkovData/Layers/streets_layer_4.png",
+      "SvgPath": "Maps/Streets_TarkovData/SVG/StreetsOfTarkov-Fifth_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -279,

@@ -18,7 +18,7 @@
   "Layers": {
     "Tunnels": {
       "Level": -1,
-      "ImagePath": "Maps/Factory_TarkovDev/Layers/factory_layer_-1.png",
+      "SvgPath": "Maps/Factory_TarkovDev/SVG/Factory-Basement.svg",
       "ImageBounds": {
         "Min": {
           "x": -65,
@@ -46,7 +46,7 @@
     },
     "Ground Floor": {
       "Level": 0,
-      "ImagePath": "Maps/Factory_TarkovDev/Layers/factory_layer_0.png",
+      "SvgPath": "Maps/Factory_TarkovDev/SVG/Factory-Ground_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -65,
@@ -74,7 +74,7 @@
     },
     "2nd Floor": {
       "Level": 1,
-      "ImagePath": "Maps/Factory_TarkovDev/Layers/factory_layer_1.png",
+      "SvgPath": "Maps/Factory_TarkovDev/SVG/Factory-Second_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -65,
@@ -102,7 +102,7 @@
     },
     "3rd Floor": {
       "Level": 2,
-      "ImagePath": "Maps/Factory_TarkovDev/Layers/factory_layer_2.png",
+      "SvgPath": "Maps/Factory_TarkovDev/SVG/Factory-Third_Floor.svg",
       "ImageBounds": {
         "Min": {
           "x": -65,

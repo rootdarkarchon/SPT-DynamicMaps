@@ -24,7 +24,7 @@ namespace DynamicMaps.Data
         public int Level { get; set; }
 
         [JsonRequired]
-        public string ImagePath { get; set; }
+        public string SvgPath { get; set; }
 
         [JsonRequired]
         public BoundingRectangle ImageBounds { get; set; }

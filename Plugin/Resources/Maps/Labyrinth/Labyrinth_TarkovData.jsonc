@@ -18,7 +18,7 @@
   "Layers": {
     "Ground Level": {
       "Level": 0,
-      "ImagePath": "Maps/Labyrinth/Layers/labyrinth_layer_0.png",
+      "SvgPath": "Maps/Labyrinth/SVG/Labyrinth.svg",
       "ImageBounds": {
         "Min": {
           "x": -52.5,

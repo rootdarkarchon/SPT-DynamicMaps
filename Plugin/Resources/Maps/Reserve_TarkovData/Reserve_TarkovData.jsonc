@@ -18,7 +18,7 @@
   "Layers": {
     "Bunkers": {
       "Level": -1,
-      "ImagePath": "Maps/Reserve_TarkovData/Layers/reserve_layer_-1.png",
+      "SvgPath": "Maps/Reserve_TarkovData/SVG/Reserve-Bunkers.svg",
       "ImageBounds": {
         "Min": {
           "x": -303.5,
@@ -46,7 +46,7 @@
     },
     "Ground Level": {
       "Level": 0,
-      "ImagePath": "Maps/Reserve_TarkovData/Layers/reserve_layer_0.png",
+      "SvgPath": "Maps/Reserve_TarkovData/SVG/Reserve-Ground_Level.svg",
       "ImageBounds": {
         "Min": {
           "x": -303.5,
