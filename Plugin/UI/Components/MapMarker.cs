@@ -88,6 +88,8 @@ namespace DynamicMaps.UI.Components
         public Image Image { get; protected set; }
         public TextMeshProUGUI Label { get; protected set; }
         public RectTransform RectTransform => gameObject.transform as RectTransform;
+        public RectTransform ZoneRectTransform { get; protected set; }
+        public Image ZoneImage { get; protected set; }
 
         public string AssociatedItemId { get; protected set; } = "";
         public bool IsDynamic { get; protected set; } = false;
@@ -173,7 +175,7 @@ namespace DynamicMaps.UI.Components
         private bool _hasSetOutline = false;
         private bool _isInFullReveal = false;
 
-        public static MapMarker CreateQuestMarker(GameObject parent, MapMarkerDef def, Vector2 size, float degreesRotation, float scale)
+        public static MapMarker Create(GameObject parent, GameObject zoneParent, MapMarkerDef def, Vector2 size, float degreesRotation, float scale)
         {
             var mapMarker = Create<MapMarker>(parent, def.Text, def.Category, def.ImagePath, def.Color, def.Position, size,
                                               def.Pivot, degreesRotation, scale, def.ShowInRaid, def.Sprite);
@@ -181,26 +183,21 @@ namespace DynamicMaps.UI.Components
 
             if (def.ZoneTrigger != null)
             {
-                Plugin.Log.LogInfo($"Creating zone area for marker with text {def.Text}");
-                var zoneArea = UIUtils.CreateUIGameObject(mapMarker.transform.parent.gameObject, "zoneArea");
-                zoneArea.transform.parent = mapMarker.gameObject.transform;
-                zoneArea.GetRectTransform().anchoredPosition = mapMarker.Position;
-                zoneArea.GetRectTransform().localScale = scale * Vector2.one;
-                zoneArea.GetRectTransform().localRotation = def.ZoneTrigger.Rotation;
-                zoneArea.GetRectTransform().sizeDelta = new(def.ZoneTrigger.Bounds.extents.x, def.ZoneTrigger.Bounds.extents.z);
+                var zoneArea = UIUtils.CreateUIGameObject(zoneParent, $"zoneArea_{def.Text}");
+                var rt = zoneArea.GetRectTransform();
+
+                rt.anchoredPosition = def.Position;
+                rt.localScale = Vector3.one;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(def.ZoneTrigger.Size.x, def.ZoneTrigger.Size.z);
+                rt.localRotation = Quaternion.Euler(0f, 0f, -def.ZoneTrigger.YawDegrees);
 
                 var zoneImage = zoneArea.AddComponent<Image>();
-                zoneImage.color = new(0f, 1, 0, 0.5f);
+                zoneImage.color = new Color(def.Color.r, def.Color.g, def.Color.b, 0.15f);
+                zoneImage.raycastTarget = false;
+                mapMarker.ZoneImage = zoneImage;
+                zoneImage.gameObject.SetActive(false);
             }
-
-            return mapMarker;
-        }
-
-        public static MapMarker Create(GameObject parent, MapMarkerDef def, Vector2 size, float degreesRotation, float scale)
-        {
-            var mapMarker = Create<MapMarker>(parent, def.Text, def.Category, def.ImagePath, def.Color, def.Position, size,
-                                              def.Pivot, degreesRotation, scale, def.ShowInRaid, def.Sprite);
-            mapMarker.AssociatedItemId = def.AssociatedItemId;
 
             return mapMarker;
         }
@@ -280,6 +277,12 @@ namespace DynamicMaps.UI.Components
         protected virtual void OnDestroy()
         {
             OnPositionChanged = null;
+            if (ZoneRectTransform != null)
+            {
+                Destroy(ZoneRectTransform.gameObject);
+                ZoneRectTransform = null;
+                ZoneImage = null;
+            }
         }
 
         public void Move(Vector3 newPosition, bool callback = true)
@@ -336,6 +339,13 @@ namespace DynamicMaps.UI.Components
             Image.gameObject.SetActive(imageAlpha > 0f);
             Label.gameObject.SetActive(labelAlpha > 0f);
             gameObject.SetActive(labelAlpha > 0f || imageAlpha > 0f);
+
+            if (ZoneImage != null)
+            {
+                ZoneImage.gameObject.SetActive(labelAlpha > 0f);
+                var zoneAlpha = labelAlpha * 0.15f;
+                ZoneImage.color = new Color(ZoneImage.color.r, ZoneImage.color.g, ZoneImage.color.b, zoneAlpha);
+            }
         }
 
         public void OnPointerEnter(PointerEventData eventData)

@@ -45,11 +45,18 @@ namespace DynamicMaps.Utils
                 }
                 else
                 {
-                    TriggersWithIds = [.. GameObject.FindObjectsOfType<TriggerWithId>().Select(k => new TriggerWithIdAbstraction()
-                    {
-                        Id = k.Id,
-                        Position = k.transform.position,
-                        Bounds = k.GetComponent<BoxCollider>().bounds
+                    TriggersWithIds = [.. GameObject.FindObjectsOfType<TriggerWithId>().Select(k => {
+                        var box = k.GetComponent<BoxCollider>();
+                        var worldCenter = box.transform.TransformPoint(box.center);
+                        var worldSize = Vector3.Scale(box.size, box.transform.lossyScale.Abs());
+                        var yaw = box.transform.eulerAngles.y;
+                        return new TriggerWithIdAbstraction
+                        {
+                            Id = k.Id,
+                            Position = worldCenter,
+                            Size = worldSize,
+                            YawDegrees = yaw
+                        };
                     })];
                 }
             }

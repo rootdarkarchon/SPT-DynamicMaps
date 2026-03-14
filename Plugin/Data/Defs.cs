@@ -70,8 +70,8 @@ namespace DynamicMaps.Data
     {
         public string Id { get; set; }
         public Vector3 Position { get; set; }
-        public Bounds Bounds { get; set; }
-        public Quaternion Rotation { get; set; }
+        public Vector3 Size { get; set; }
+        public float YawDegrees { get; set; }
     }
 
     public class MapDef

@@ -27,6 +27,7 @@ namespace DynamicMaps.UI.Components
         public GameObject MapMarkerContainer { get; private set; }
         public GameObject MapLabelsContainer { get; private set; }
         public GameObject MapLayerContainer { get; private set; }
+        public GameObject MapZoneContainer { get; private set; }
 
         public float ZoomMin { get; private set; }      // set when map loaded
         public float ZoomMax { get; private set; }      // set when map loaded
@@ -56,12 +57,14 @@ namespace DynamicMaps.UI.Components
         private void Awake()
         {
             MapLayerContainer = UIUtils.CreateUIGameObject(gameObject, "Layers");
+            MapZoneContainer = UIUtils.CreateUIGameObject(gameObject, "Zones");
             MapMarkerContainer = UIUtils.CreateUIGameObject(gameObject, "Markers");
             MapLabelsContainer = UIUtils.CreateUIGameObject(gameObject, "Labels");
 
-            // for some reason these don't follow creation order in some cases
             MapLayerContainer.transform.SetAsFirstSibling();
-            MapMarkerContainer.transform.SetAsLastSibling();
+            MapZoneContainer.transform.SetSiblingIndex(1);
+            MapMarkerContainer.transform.SetSiblingIndex(2);
+            MapLabelsContainer.transform.SetAsLastSibling();
         }
 
         public void AddMapMarker(MapMarker marker)
@@ -83,11 +86,7 @@ namespace DynamicMaps.UI.Components
 
         public MapMarker AddMapMarker(MapMarkerDef markerDef)
         {
-            MapMarker marker;
-            if (markerDef.Category == "Quest")
-                marker = MapMarker.CreateQuestMarker(MapMarkerContainer, markerDef, _markerSize, -CoordinateRotation, 1f / ZoomCurrent);
-            else
-                marker = MapMarker.Create(MapMarkerContainer, markerDef, _markerSize, -CoordinateRotation, 1f / ZoomCurrent);
+            MapMarker marker = MapMarker.Create(MapMarkerContainer, MapZoneContainer, markerDef, _markerSize, -CoordinateRotation, 1f / ZoomCurrent);
 
             AddMapMarker(marker);
             return marker;
@@ -438,8 +437,11 @@ namespace DynamicMaps.UI.Components
         private void UpdateLayerBound(ILayerBound bound)
         {
             var layer = FindMatchingLayerByCoordinate(bound.Position);
-
-            if (layer is null) return;
+            if (layer is null)
+            {
+                bound.HandleNewLayerStatus(LayerStatus.Hidden);
+                return;
+            }
 
             bound.HandleNewLayerStatus(layer.Status);
         }

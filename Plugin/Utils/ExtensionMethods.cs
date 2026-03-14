@@ -68,4 +68,7 @@ internal static class ExtensionMethods
             && ApproxEquals(first.y, second.y, delta)
             && ApproxEquals(first.z, second.z, delta);
     }
+
+    public static Vector3 Abs(this Vector3 v)
+        => new(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
 }

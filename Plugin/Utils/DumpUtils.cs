@@ -38,18 +38,20 @@ namespace DynamicMaps.Utils
             var gameWorld = Singleton<GameWorld>.Instance;
             var mapName = GameUtils.GetCurrentMapInternalName();
 
-            var triggers = GameObject.FindObjectsOfType<TriggerWithId>().ToList();
-            var triggerWithId = triggers.Select(k =>
-            {
-                return new TriggerWithIdAbstraction()
-                {
-                    Id = k.Id,
-                    Position = k.transform.position,
-                    Bounds = k.GetComponent<BoxCollider>().bounds,
-                    Rotation = k.GetComponent<BoxCollider>().transform.rotation,
-                };
-            }).ToList();
-            var dumpString = JsonConvert.SerializeObject(triggerWithId);
+            List<TriggerWithIdAbstraction> triggersWithIds = [.. GameObject.FindObjectsOfType<TriggerWithId>().Select(k => {
+                        var box = k.GetComponent<BoxCollider>();
+                        var worldCenter = box.transform.TransformPoint(box.center);
+                        var worldSize = Vector3.Scale(box.size, box.transform.lossyScale.Abs());
+                        var yaw = box.transform.eulerAngles.y;
+                        return new TriggerWithIdAbstraction
+                        {
+                            Id = k.Id,
+                            Position = worldCenter,
+                            Size = worldSize,
+                            YawDegrees = yaw
+                        };
+                    })];
+            var dumpString = JsonConvert.SerializeObject(triggersWithIds);
 
             File.WriteAllText(Path.Combine(Plugin.Path, $"{mapName}-triggers.json"), dumpString);
 
