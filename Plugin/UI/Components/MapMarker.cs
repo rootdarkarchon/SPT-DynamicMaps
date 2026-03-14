@@ -195,8 +195,10 @@ namespace DynamicMaps.UI.Components
                 var zoneImage = zoneArea.AddComponent<Image>();
                 zoneImage.color = new Color(def.Color.r, def.Color.g, def.Color.b, 0.15f);
                 zoneImage.raycastTarget = false;
-                mapMarker.ZoneImage = zoneImage;
                 zoneImage.gameObject.SetActive(false);
+
+                mapMarker.ZoneImage = zoneImage;
+                mapMarker.ZoneRectTransform = rt;
             }
 
             return mapMarker;
