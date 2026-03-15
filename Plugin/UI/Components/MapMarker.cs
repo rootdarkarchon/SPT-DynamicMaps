@@ -86,6 +86,7 @@ namespace DynamicMaps.UI.Components
         public string Category { get; protected set; }
         public MapView ContainingMapView { get; set; }
 
+        public Image ArrowImage { get; protected set; }
         public Image Image { get; protected set; }
         public Image ExtraImage { get; protected set; }
         public TextMeshProUGUI Label { get; protected set; }
@@ -214,16 +215,18 @@ namespace DynamicMaps.UI.Components
 
         public void UpdateZoneAttachmentLayout(bool allowAutoOffset = true)
         {
-            if ((HasZoneAttachment && !ZoneImage.gameObject.activeSelf) 
-                || !Label.gameObject.activeSelf 
-                || VisualRoot == null 
-                || ConnectorImage == null 
-                || Image == null 
+            if ((HasZoneAttachment && !ZoneImage.gameObject.activeSelf)
+                || !Label.gameObject.activeSelf
+                || VisualRoot == null
+                || ConnectorImage == null
+                || Image == null
                 || Label == null)
             {
                 ResetZoneAttachmentLayout();
                 return;
             }
+
+            allowAutoOffset &= !_isHovered;
 
             var anchorPoint = GetAnchorPointInMarkerSpace();
             var markerSize = GetRectAabbSizeInMarkerSpace(Image.rectTransform);
@@ -370,7 +373,7 @@ namespace DynamicMaps.UI.Components
                 rt.localRotation = Quaternion.Euler(0f, 0f, -def.ZoneTrigger.YawDegrees);
 
                 var zoneImage = zoneArea.AddComponent<Image>();
-                zoneImage.color = new Color(def.Color.r, def.Color.g, def.Color.b, 0.15f);
+                zoneImage.color = def.Color with { a = 0.15f };
                 zoneImage.raycastTarget = false;
                 zoneImage.gameObject.SetActive(false);
 
@@ -484,8 +487,19 @@ namespace DynamicMaps.UI.Components
                 marker.ExtraImage.raycastTarget = false;
                 marker.ExtraImage.type = Image.Type.Simple;
                 marker.ExtraImage.sprite = layeredSprite;
-                marker.ExtraImage.color = new Color(marker.ExtraImage.color.r, marker.ExtraImage.color.g, marker.ExtraImage.color.b, color.a);
+                marker.ExtraImage.color = marker.ExtraImage.color with { a = color.a };
             }
+
+            var arrowGO = UIUtils.CreateUIGameObject(visualGO, "layerarrow");
+            arrowGO.AddComponent<CanvasRenderer>();
+            arrowGO.GetRectTransform().sizeDelta = size / 3f;
+            arrowGO.GetRectTransform().pivot = new(0.5f, 0.5f);
+
+            marker.ArrowImage = arrowGO.AddComponent<Image>();
+            marker.ArrowImage.raycastTarget = false;
+            marker.ArrowImage.sprite = TextureUtils.GetOrLoadCachedSprite("markers/layer_arrow.png");
+            marker.ArrowImage.color = Color.yellow with { a = color.a };
+            marker.ArrowImage.type = Image.Type.Simple;
 
             // label
             var labelGO = UIUtils.CreateUIGameObject(visualGO, "label");
@@ -574,6 +588,32 @@ namespace DynamicMaps.UI.Components
             Image.color = new Color(Image.color.r, Image.color.g, Image.color.b, imageAlpha);
             ExtraImage?.color = new Color(ExtraImage.color.r, ExtraImage.color.g, ExtraImage.color.b, imageAlpha);
             Label.color = new Color(Label.color.r, Label.color.g, Label.color.b, labelAlpha);
+            ArrowImage.color = ArrowImage.color with { a = imageAlpha };
+
+            if (status is LayerStatus.OnTop)
+            {
+                ArrowImage.gameObject.SetActive(false);
+            }
+            else if (status is not LayerStatus.FullReveal)
+            {
+                ArrowImage.gameObject.SetActive(true);
+                var rt = ArrowImage.GetRectTransform();
+
+                if (status == LayerStatus.Underneath)
+                {
+                    rt.anchorMin = new Vector2(1f, 0f);
+                    rt.anchorMax = new Vector2(1f, 0f);
+                    rt.anchoredPosition = new Vector2(-1.5f, 2f);
+                    rt.localRotation = Quaternion.Euler(0f, 0f, 180f);
+                }
+                else if (status == LayerStatus.Hidden)
+                {
+                    rt.anchorMin = new Vector2(1f, 1f);
+                    rt.anchorMax = new Vector2(1f, 1f);
+                    rt.anchoredPosition = new Vector2(-1.5f, -2f);
+                    rt.localRotation = Quaternion.identity;
+                }
+            }
 
             Image.gameObject.SetActive(imageAlpha > 0f);
             ExtraImage?.gameObject.SetActive(imageAlpha > 0f);
