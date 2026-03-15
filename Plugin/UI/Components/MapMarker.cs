@@ -92,6 +92,7 @@ namespace DynamicMaps.UI.Components
         public RectTransform RectTransform => gameObject.transform as RectTransform;
         public RectTransform ZoneRectTransform { get; protected set; }
         public Image ZoneImage { get; protected set; }
+        public Image AnchorDotImage { get; protected set; }
 
         public RectTransform VisualRoot { get; set; }
         public Image ConnectorImage { get; set; }
@@ -99,6 +100,10 @@ namespace DynamicMaps.UI.Components
         public string AssociatedItemId { get; protected set; } = "";
         public bool IsDynamic { get; protected set; } = false;
         public bool ShowInRaid { get; protected set; } = true;
+
+        private bool HasZoneAttachment => ZoneRectTransform != null && ZoneImage != null;
+        private bool ShouldShowQuestAnchorDot => Category == "Quest" && !HasZoneAttachment;
+
 
         private Vector3 _position;
         public Vector3 Position
@@ -209,39 +214,69 @@ namespace DynamicMaps.UI.Components
 
         public void UpdateZoneAttachmentLayout(bool allowAutoOffset = true)
         {
-            if (ZoneRectTransform == null || ZoneImage == null || VisualRoot == null || ConnectorImage == null || Image == null)
+            if ((HasZoneAttachment && !ZoneImage.gameObject.activeSelf) 
+                || !Label.gameObject.activeSelf 
+                || VisualRoot == null 
+                || ConnectorImage == null 
+                || Image == null 
+                || Label == null)
             {
                 ResetZoneAttachmentLayout();
                 return;
             }
 
-            if (!ZoneImage.gameObject.activeSelf || !Label.gameObject.activeSelf)
-            {
-                ResetZoneAttachmentLayout();
-                return;
-            }
-
-            var zoneCenter = GetRectCenterInMarkerSpace(ZoneRectTransform);
-            var zoneSize = GetRectAabbSizeInMarkerSpace(ZoneRectTransform);
+            var anchorPoint = GetAnchorPointInMarkerSpace();
             var markerSize = GetRectAabbSizeInMarkerSpace(Image.rectTransform);
 
-            var zoneMin = Mathf.Min(zoneSize.x, zoneSize.y);
-            var markerMax = Mathf.Max(markerSize.x, markerSize.y);
-
             Vector2 targetCenter = Vector2.zero;
+            var shouldOffset = false;
 
-            if (allowAutoOffset && zoneMin < markerMax)
+            if (HasZoneAttachment)
+            {
+                var zoneSize = GetRectAabbSizeInMarkerSpace(ZoneRectTransform);
+                var zoneMin = Mathf.Min(zoneSize.x, zoneSize.y);
+                var markerMax = Mathf.Max(markerSize.x, markerSize.y);
+
+                if (allowAutoOffset && zoneMin < markerMax)
+                {
+                    const float padding = 10f;
+                    var offset = zoneSize.x * 0.5f + markerSize.x * 0.5f + padding;
+                    targetCenter = anchorPoint + new Vector2(offset, -offset / 2f);
+                    shouldOffset = true;
+                }
+            }
+            else if (allowAutoOffset && ShouldShowQuestAnchorDot)
             {
                 const float padding = 10f;
-
-                var offset = zoneSize.x * 0.5f + markerSize.x * 0.5f + padding;
-                targetCenter = zoneCenter + new Vector2(offset, -offset);
+                var offsetX = markerSize.x * 0.75f + padding;
+                targetCenter = anchorPoint + new Vector2(offsetX, -offsetX / 2f);
+                shouldOffset = true;
             }
 
             SetLocal2D(VisualRoot, targetCenter);
 
+            var alpha = Image.color.a * 0.65f;
+
+            if (AnchorDotImage != null)
+            {
+                var showDot = shouldOffset && ShouldShowQuestAnchorDot;
+                AnchorDotImage.gameObject.SetActive(showDot);
+
+                if (showDot)
+                {
+                    SetLocal2D(AnchorDotImage.rectTransform, anchorPoint);
+                    AnchorDotImage.color = new Color(Color.r, Color.g, Color.b, 1.0f);
+                }
+            }
+
+            if (!shouldOffset)
+            {
+                ConnectorImage.gameObject.SetActive(false);
+                return;
+            }
+
             var visualCenter = GetRectCenterInMarkerSpace(Image.rectTransform);
-            var delta = visualCenter - zoneCenter;
+            var delta = visualCenter - anchorPoint;
 
             if (delta.sqrMagnitude < 0.001f)
             {
@@ -250,18 +285,24 @@ namespace DynamicMaps.UI.Components
             }
 
             var connectorRT = ConnectorImage.rectTransform;
-            SetLocal2D(connectorRT, zoneCenter);
+            SetLocal2D(connectorRT, anchorPoint);
             connectorRT.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
             connectorRT.sizeDelta = new Vector2(delta.magnitude, 2f);
 
-            var connectorAlpha = Mathf.Clamp01(Image.color.a * 0.5f);
-            ConnectorImage.color = new Color(
-                ZoneImage.color.r,
-                ZoneImage.color.g,
-                ZoneImage.color.b,
-                connectorAlpha);
-
+            ConnectorImage.color = new Color(Color.r, Color.g, Color.b, alpha);
             ConnectorImage.gameObject.SetActive(true);
+        }
+
+
+        private Vector2 GetAnchorPointInMarkerSpace()
+        {
+            if (HasZoneAttachment)
+            {
+                var worldCenter = ZoneRectTransform.TransformPoint(Vector3.zero);
+                return RectTransform.InverseTransformPoint(worldCenter);
+            }
+
+            return Vector2.zero;
         }
 
 
@@ -289,12 +330,9 @@ namespace DynamicMaps.UI.Components
 
         public void ResetZoneAttachmentLayout()
         {
-            if (VisualRoot != null)
-            {
-                VisualRoot.localPosition = new Vector3(0f, 0f, VisualRoot.localPosition.z);
-            }
+            VisualRoot?.localPosition = new Vector3(0f, 0f, VisualRoot.localPosition.z);
 
-            if (ConnectorImage != null)
+            if (ConnectorImage is not null)
             {
                 ConnectorImage.gameObject.SetActive(false);
 
@@ -302,6 +340,12 @@ namespace DynamicMaps.UI.Components
                 connectorRT.localPosition = new Vector3(0f, 0f, connectorRT.localPosition.z);
                 connectorRT.localRotation = Quaternion.identity;
                 connectorRT.sizeDelta = new Vector2(0f, 2f);
+            }
+
+            if (AnchorDotImage is not null)
+            {
+                AnchorDotImage.gameObject.SetActive(false);
+                AnchorDotImage.rectTransform.localPosition = Vector3.zero;
             }
         }
 
@@ -311,9 +355,10 @@ namespace DynamicMaps.UI.Components
             var mapMarker = Create<MapMarker>(parent, def.Text, def.Category, def.ImagePath, def.Color, def.Position, size,
                                               def.Pivot, degreesRotation, scale, def.ShowInRaid, def.Sprite, def.LayeredSprite,
                                               (def.Category == "Quest" && def.Sprite == null ? new Vector2(0.5f, 0f) : null));
+
             mapMarker.AssociatedItemId = def.AssociatedItemId;
 
-            if (def.ZoneTrigger != null)
+            if (def.ZoneTrigger is not null)
             {
                 var zoneArea = UIUtils.CreateUIGameObject(zoneParent, $"zoneArea_{def.Text}");
                 var rt = zoneArea.GetRectTransform();
@@ -373,6 +418,27 @@ namespace DynamicMaps.UI.Components
             marker.ConnectorImage.raycastTarget = false;
             marker.ConnectorImage.color = new Color(color.r, color.g, color.b, 0.25f);
             marker.ConnectorImage.gameObject.SetActive(false);
+
+            // anchor
+            var anchorDotGO = UIUtils.CreateUIGameObject(go, "anchorDot");
+            anchorDotGO.AddComponent<CanvasRenderer>();
+
+            var anchorDotRT = anchorDotGO.GetRectTransform();
+            anchorDotRT.anchorMin = new Vector2(0.5f, 0.5f);
+            anchorDotRT.anchorMax = new Vector2(0.5f, 0.5f);
+            anchorDotRT.pivot = new Vector2(0.5f, 0.5f);
+            anchorDotRT.localPosition = Vector3.zero;
+            anchorDotRT.localScale = Vector3.one;
+            anchorDotRT.localRotation = Quaternion.identity;
+            anchorDotRT.sizeDelta = new Vector2(8f, 8f);
+
+            marker.AnchorDotImage = anchorDotGO.AddComponent<Image>();
+            marker.AnchorDotImage.raycastTarget = false;
+            marker.AnchorDotImage.sprite = TextureUtils.GetOrLoadCachedSprite("markers/anchor_dot.png");
+            marker.AnchorDotImage.type = Image.Type.Simple;
+            marker.AnchorDotImage.preserveAspect = true;
+            marker.AnchorDotImage.color = new Color(color.r, color.g, color.b, 1f);
+            marker.AnchorDotImage.gameObject.SetActive(false);
 
             // visual root that can be offset away from the zone center
             var visualGO = UIUtils.CreateUIGameObject(go, "visualRoot");
