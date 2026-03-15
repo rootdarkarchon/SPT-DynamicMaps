@@ -27,16 +27,17 @@ namespace DynamicMaps.UI.Components
         public GameObject MapMarkerContainer { get; private set; }
         public GameObject MapLabelsContainer { get; private set; }
         public GameObject MapLayerContainer { get; private set; }
+        public GameObject MapZoneContainer { get; private set; }
 
         public float ZoomMin { get; private set; }      // set when map loaded
         public float ZoomMax { get; private set; }      // set when map loaded
 
         public float ZoomMain { get; set; } = Settings.ZoomMainMap.Value;
         public float ZoomMini { get; set; } = Settings.ZoomMiniMap.Value;
-        
+
         public float ZoomCurrent { get; private set; }  // set when map loaded
         public Vector2 MainMapPos { get; private set; } = Vector2.zero;
-        
+
         private Vector2 _immediateMapAnchor = Vector2.zero;
 
         private List<MapMarker> _markers = new List<MapMarker>();
@@ -56,12 +57,14 @@ namespace DynamicMaps.UI.Components
         private void Awake()
         {
             MapLayerContainer = UIUtils.CreateUIGameObject(gameObject, "Layers");
+            MapZoneContainer = UIUtils.CreateUIGameObject(gameObject, "Zones");
             MapMarkerContainer = UIUtils.CreateUIGameObject(gameObject, "Markers");
             MapLabelsContainer = UIUtils.CreateUIGameObject(gameObject, "Labels");
 
-            // for some reason these don't follow creation order in some cases
             MapLayerContainer.transform.SetAsFirstSibling();
-            MapMarkerContainer.transform.SetAsLastSibling();
+            MapZoneContainer.transform.SetSiblingIndex(1);
+            MapMarkerContainer.transform.SetSiblingIndex(2);
+            MapLabelsContainer.transform.SetAsLastSibling();
         }
 
         public void AddMapMarker(MapMarker marker)
@@ -83,7 +86,8 @@ namespace DynamicMaps.UI.Components
 
         public MapMarker AddMapMarker(MapMarkerDef markerDef)
         {
-            var marker = MapMarker.Create(MapMarkerContainer, markerDef, _markerSize, -CoordinateRotation, 1f/ZoomCurrent);
+            MapMarker marker = MapMarker.Create(MapMarkerContainer, MapZoneContainer, markerDef, _markerSize, -CoordinateRotation, 1f / ZoomCurrent);
+
             AddMapMarker(marker);
             return marker;
         }
@@ -92,7 +96,7 @@ namespace DynamicMaps.UI.Components
                                                      string imagePath, Vector2 size)
         {
             var marker = TransformMapMarker.Create(followingTransform, MapMarkerContainer, imagePath, color, name, category,
-                                                   size, -CoordinateRotation, 1f/ZoomCurrent);
+                                                   size, -CoordinateRotation, 1f / ZoomCurrent);
             AddMapMarker(marker);
             return marker;
         }
@@ -100,7 +104,7 @@ namespace DynamicMaps.UI.Components
         public PlayerMapMarker AddPlayerMarker(IPlayer player, string category, Color color, string imagePath)
         {
             var marker = PlayerMapMarker.Create(player, MapMarkerContainer, imagePath, color, category,
-                                                _markerSize, -CoordinateRotation, 1f/ZoomCurrent);
+                                                _markerSize, -CoordinateRotation, 1f / ZoomCurrent);
             AddMapMarker(marker);
             return marker;
         }
@@ -152,7 +156,7 @@ namespace DynamicMaps.UI.Components
 
         public void AddMapLabel(MapLabelDef labelDef)
         {
-            var label = MapLabel.Create(MapLabelsContainer, labelDef, -CoordinateRotation, 1f/ZoomCurrent);
+            var label = MapLabel.Create(MapLabelsContainer, labelDef, -CoordinateRotation, 1f / ZoomCurrent);
 
             UpdateLayerBound(label);
 
@@ -315,7 +319,6 @@ namespace DynamicMaps.UI.Components
         {
             zoomNew = Mathf.Clamp(zoomNew, ZoomMin, ZoomMax);
 
-            // already there
             if (zoomNew == ZoomCurrent)
             {
                 return;
@@ -332,32 +335,89 @@ namespace DynamicMaps.UI.Components
                 ZoomMini = zoomNew;
                 Settings.ZoomMiniMap.Value = zoomNew;
             }
-            
-            ZoomCurrent = zoomNew;
-            
-            // scale all map content up by scaling parent
-            RectTransform.DOScale(ZoomCurrent * Vector3.one, updateMainZoom ? 0 : tweenTime);
 
-            // inverse scale all map markers and labels
-            // FIXME: does this generate large amounts of garbage?
-            var things = _markers.Cast<MonoBehaviour>().Concat(_labels);
+            ZoomCurrent = zoomNew;
+
+            var duration = tweenTime; // no special-case snap for main map
+
+            DOTween.Kill(RectTransform);
+            var things = _markers.Cast<MonoBehaviour>().Concat(_labels).ToList();
             foreach (var thing in things)
             {
-                thing.GetRectTransform().DOScale(1 / ZoomCurrent * Vector3.one, tweenTime);
+                DOTween.Kill(thing.GetRectTransform());
+            }
+
+            var mapTween = RectTransform.DOScale(ZoomCurrent * Vector3.one, duration)
+                .SetEase(Ease.OutCubic);
+
+            foreach (var thing in things)
+            {
+                thing.GetRectTransform()
+                    .DOScale(1f / ZoomCurrent * Vector3.one, duration)
+                    .SetEase(Ease.OutCubic);
+            }
+
+            UpdateZoneMarkerLayouts();
+
+            if (duration > 0f)
+            {
+                mapTween.OnUpdate(UpdateZoneMarkerLayouts)
+                       .OnComplete(UpdateZoneMarkerLayouts);
             }
         }
 
-        public void IncrementalZoomInto(float zoomDelta, Vector2 rectPoint, float zoomTweenTime)
+        private void UpdateZoneMarkerLayouts()
         {
-            var zoomNew = Mathf.Clamp(ZoomMain + zoomDelta, ZoomMin, ZoomMax);
-            var actualDelta = zoomNew - ZoomMain;
+            foreach (var marker in _markers.OfType<MapMarker>())
+            {
+                marker.UpdateZoneAttachmentLayout();
+            }
+        }
+
+        private Tween _zoomTween;
+        private float _zoomTargetMain;
+
+        public void IncrementalZoomInto(float wheelSteps, Vector2 rectPoint, float zoomTweenTime)
+        {
+            const float zoomPerStep = 1.12f;
+
+            if (_zoomTargetMain <= 0f)
+            {
+                _zoomTargetMain = ZoomMain;
+            }
+
+            _zoomTargetMain = Mathf.Clamp(
+                _zoomTargetMain * Mathf.Pow(zoomPerStep, wheelSteps),
+                ZoomMin,
+                ZoomMax);
+
+            _zoomTween?.Kill();
+
+            var startZoom = ZoomCurrent;
+            var startAnchor = RectTransform.anchoredPosition;
             var rotatedPoint = MathUtils.GetRotatedVector2(rectPoint, CoordinateRotation);
 
-            // have to shift first, so that the tween is started in the shift first
-            ShiftMap(-rotatedPoint * actualDelta, zoomTweenTime, false);
-            SetMapZoom(zoomNew, zoomTweenTime);
+            _zoomTween = DOVirtual.Float(startZoom, _zoomTargetMain, zoomTweenTime, z =>
+            {
+                var ratio = z / startZoom;
+
+                ZoomCurrent = z;
+                ZoomMain = z;
+                Settings.ZoomMainMap.Value = z;
+
+                RectTransform.localScale = z * Vector3.one;
+
+                foreach (var thing in _markers.Cast<MonoBehaviour>().Concat(_labels))
+                {
+                    thing.GetRectTransform().localScale = (1f / z) * Vector3.one;
+                }
+
+                RectTransform.anchoredPosition = startAnchor - rotatedPoint * (z - startZoom);
+
+                UpdateZoneMarkerLayouts();
+            }).SetEase(Ease.OutCubic);
         }
-        
+
         public void IncrementalZoomIntoMiniMap(float zoomDelta, Vector2 rectPoint, float zoomTweenTime)
         {
             var zoomNew = Mathf.Clamp(ZoomMini + zoomDelta, ZoomMin, ZoomMax);
@@ -388,7 +448,7 @@ namespace DynamicMaps.UI.Components
             {
                 MainMapPos = _immediateMapAnchor;
             }
-            
+
             RectTransform.DOAnchorPos(_immediateMapAnchor, tweenTime);
         }
 
@@ -397,7 +457,7 @@ namespace DynamicMaps.UI.Components
             MainMapPos = pos;
             RectTransform.DOAnchorPos(pos, tweenTime);
         }
-        
+
         public void ShiftMapToCoordinate(Vector2 coord, float tweenTime, bool isMini)
         {
             var rotatedCoord = MathUtils.GetRotatedVector2(coord, CoordinateRotation);
@@ -416,7 +476,7 @@ namespace DynamicMaps.UI.Components
         {
             var smallestDimension = Mathf.Min(CurrentMapDef.Bounds.Max.x - CurrentMapDef.Bounds.Min.x,
                                               CurrentMapDef.Bounds.Max.y - CurrentMapDef.Bounds.Min.y);
-            
+
             var incrementSize = smallestDimension * ZoomCurrent * incrementScale;
             ShiftMap(shiftIncrements * incrementSize, 0, isMini);
         }
@@ -433,9 +493,12 @@ namespace DynamicMaps.UI.Components
         private void UpdateLayerBound(ILayerBound bound)
         {
             var layer = FindMatchingLayerByCoordinate(bound.Position);
-            
-            if (layer is null) return;
-            
+            if (layer is null)
+            {
+                bound.HandleNewLayerStatus(LayerStatus.Hidden);
+                return;
+            }
+
             bound.HandleNewLayerStatus(layer.Status);
         }
 

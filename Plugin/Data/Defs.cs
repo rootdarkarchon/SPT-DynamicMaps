@@ -44,11 +44,13 @@ namespace DynamicMaps.Data
         public Vector3 Position { get; set; }
 
         public Sprite Sprite { get; set; }
+        public Sprite LayeredSprite { get; set; }
         public bool ShowInRaid { get; set; } = true;
         public string Category { get; set; } = "None";
         public Color Color { get; set; } = Color.white;
         public Vector2 Pivot { get; set; } = new Vector2(0.5f, 0.5f);
         public string AssociatedItemId { get; set; } = "";
+        public TriggerWithIdAbstraction ZoneTrigger { get; set; } = null;
     }
 
     public class MapLabelDef
@@ -69,8 +71,8 @@ namespace DynamicMaps.Data
     {
         public string Id { get; set; }
         public Vector3 Position { get; set; }
-        public Bounds Bounds { get; set; }
-        public Quaternion Rotation { get; set; }
+        public Vector3 Size { get; set; }
+        public float YawDegrees { get; set; }
     }
 
     public class MapDef

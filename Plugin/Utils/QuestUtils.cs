@@ -45,11 +45,18 @@ namespace DynamicMaps.Utils
                 }
                 else
                 {
-                    TriggersWithIds = [.. GameObject.FindObjectsOfType<TriggerWithId>().Select(k => new TriggerWithIdAbstraction()
-                    {
-                        Id = k.Id,
-                        Position = k.transform.position,
-                        Bounds = k.GetComponent<BoxCollider>().bounds
+                    TriggersWithIds = [.. GameObject.FindObjectsOfType<TriggerWithId>().Select(k => {
+                        var box = k.GetComponent<BoxCollider>();
+                        var worldCenter = box.transform.TransformPoint(box.center);
+                        var worldSize = Vector3.Scale(box.size, box.transform.lossyScale.Abs());
+                        var yaw = box.transform.eulerAngles.y;
+                        return new TriggerWithIdAbstraction
+                        {
+                            Id = k.Id,
+                            Position = worldCenter,
+                            Size = worldSize,
+                            YawDegrees = yaw
+                        };
                     })];
                 }
             }
@@ -120,17 +127,15 @@ namespace DynamicMaps.Utils
                 var questName = quest.Template.NameLocaleKey.BSGLocalized();
                 var conditionDescription = condition.id.BSGLocalized();
 
-                var positions = GetPositionsForCondition(condition, questName, conditionDescription);
-                foreach (var position in positions)
+                var conditionData = GetConditionData(condition, questName, conditionDescription);
+                foreach (var data in conditionData)
                 {
                     var isDuplicate = false;
 
                     // check against previously created markers for duplicate position
                     foreach (var marker in markers)
                     {
-                        if (MathUtils.ApproxEquals(marker.Position.x, position.x)
-                         && MathUtils.ApproxEquals(marker.Position.y, position.y)
-                         && MathUtils.ApproxEquals(marker.Position.z, position.z))
+                        if (marker.Position.ApproxEquals(data.Position))
                         {
                             isDuplicate = true;
                             break;
@@ -142,14 +147,93 @@ namespace DynamicMaps.Utils
                         continue;
                     }
 
-                    markers.Add(CreateQuestMapMarkerDef(position, questName, conditionDescription));
+                    TriggerWithIdAbstraction triggerWithIdAbstraction = null;
+                    if (data.Condition.InnerCondition is ConditionInZone or ConditionZone or ConditionVisitPlace or ConditionLaunchFlare)
+                    {
+                        Plugin.Log.LogInfo($"Trying to find trigger for condition {conditionDescription} at position {data.Position} in zone {data.ZoneId}");
+                        triggerWithIdAbstraction = TriggersWithIds.FirstOrDefault(f => f.Id == data.ZoneId
+                            && (TriggersWithIds.Count(z => z.Id == f.Id) == 1 || MathUtils.ConvertToMapPosition(f.Position).ApproxEquals(data.Position, 1)));
+                        if (triggerWithIdAbstraction != null)
+                            Plugin.Log.LogInfo($"Found trigger {triggerWithIdAbstraction?.Id} at position {triggerWithIdAbstraction?.Position} for condition {conditionDescription}");
+                    }
+
+
+                    var mapDef = CreateQuestMapMarkerDef(data.Position, questName, conditionDescription, triggerWithIdAbstraction);
+                    markers.Add(mapDef);
+
+                    if (data.Condition.InnerCondition is ConditionZone zoneCondition)
+                    {
+                        var targetItemId = zoneCondition.target.FirstOrDefault();
+                        if (zoneCondition is ConditionLeaveItemAtLocation)
+                        {
+                            if (targetItemId == "5b4391a586f7745321235ab2") // wifi camera
+                                mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/camera.png");
+                            else
+                                mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/deposit.png");
+                        }
+
+                        if (zoneCondition is ConditionPlaceBeacon)
+                        {
+                            if (targetItemId == "5991b51486f77447b112d44f") // ms2000 marker
+                                mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/ms20000_marker.png");
+                            else if (targetItemId == "63a0b2eabea67a6d93009e52") // radio repeater
+                                mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/radiorepeater.png");
+                            else if (targetItemId == "5447e0e74bdc2d3c308b4567") // signaljammer
+                                mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/signaljammer.png");
+                        }
+                    }
+                    else if (data.Condition.InnerCondition is ConditionVisitPlace)
+                    {
+                        mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/visitplace.png");
+                    }
+                    else if (data.Condition.InnerCondition is ConditionFindItem)
+                    {
+                        mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/pickup.png");
+                    }
+
+                    if (data.Condition.Parent is not null)
+                    {
+                        var killCondition = data.Condition.Parent.TemplateConditions.Conditions.FirstOrDefault(c => c is ConditionKills) as ConditionKills;
+                        if (killCondition is not null)
+                        {
+                            // target Any == any == kill icon
+                            // target AnyPmc == pmc == kill pmc icon
+                            // target Usec == usec == kill usec icon
+                            // Target Bear == bear == kill bear icon
+                            // target savage + savageRole boss|follower == boss icon
+                            // target savage + savageRole empty == scav icon
+                            // target savage + savageRole exUsec == rogues
+                            // target savage + savageRole marksman == snipers
+                            // target savage + savageRole arenaFighterEvent == bloodhounds // raiders?
+                            // target savage + savageRole pmcBot == raiders?
+                            // target savage + savageRole sectant == cultists
+
+                            mapDef.Sprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_any.png");
+
+                            if (string.Equals(killCondition.target, "anypmc", System.StringComparison.OrdinalIgnoreCase))
+                                mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_pmc.png");
+                            else if (string.Equals(killCondition.target, "usec", System.StringComparison.OrdinalIgnoreCase))
+                                mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_usec.png");
+                            else if (string.Equals(killCondition.target, "bear", System.StringComparison.OrdinalIgnoreCase))
+                                mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_bear.png");
+                            else if (string.Equals(killCondition.target, "savage", System.StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (killCondition.savageRole.Length == 0)
+                                    mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_scav.png");
+                                else if (killCondition.savageRole.Any(r => r.StartsWith("boss", System.StringComparison.OrdinalIgnoreCase) || r.StartsWith("follower", System.StringComparison.OrdinalIgnoreCase)))
+                                    mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_boss.png");
+                                else
+                                    mapDef.LayeredSprite = TextureUtils.GetOrLoadCachedSprite("Markers/kill_special.png");
+                            }
+                        }
+                    }
                 }
             }
 
             return markers;
         }
 
-        private static IEnumerable<Vector3> GetPositionsForCondition(Condition condition, string questName,
+        private static IEnumerable<(ConditionWrapper Condition, Vector3 Position, string ZoneId)> GetConditionData(Condition condition, string questName,
                                                                     string conditionDescription)
         {
             switch (condition)
@@ -158,7 +242,7 @@ namespace DynamicMaps.Utils
                     {
                         foreach (var position in GetPositionsForZoneId(zoneCondition.zoneId, questName, conditionDescription))
                         {
-                            yield return position;
+                            yield return (new(condition), position, zoneCondition.zoneId);
                         }
                         break;
                     }
@@ -166,7 +250,7 @@ namespace DynamicMaps.Utils
                     {
                         foreach (var position in GetPositionsForZoneId(flareCondition.zoneID, questName, conditionDescription))
                         {
-                            yield return position;
+                            yield return (new(condition), position, flareCondition.zoneID);
                         }
                         break;
                     }
@@ -174,7 +258,7 @@ namespace DynamicMaps.Utils
                     {
                         foreach (var position in GetPositionsForZoneId(place.target, questName, conditionDescription))
                         {
-                            yield return position;
+                            yield return (new(condition), position, place.target);
                         }
                         break;
                     }
@@ -184,7 +268,7 @@ namespace DynamicMaps.Utils
                         {
                             foreach (var position in GetPositionsForZoneId(zoneId, questName, conditionDescription))
                             {
-                                yield return position;
+                                yield return (new(condition), position, zoneId);
                             }
                         }
                         break;
@@ -193,7 +277,7 @@ namespace DynamicMaps.Utils
                     {
                         foreach (var position in GetPositionsForQuestItems(findItemCondition.target, questName, conditionDescription))
                         {
-                            yield return position;
+                            yield return (new(condition), position, null);
                         }
                         break;
                     }
@@ -211,7 +295,7 @@ namespace DynamicMaps.Utils
 
                             if (specifiedExit != null)
                             {
-                                yield return MathUtils.ConvertToMapPosition(specifiedExit.transform);
+                                yield return (new(condition), MathUtils.ConvertToMapPosition(specifiedExit.transform), null);
                             }
 
                             break;
@@ -233,16 +317,27 @@ namespace DynamicMaps.Utils
             }
         }
 
-        private static IEnumerable<Vector3> GetPositionsForConditionCreator(ConditionCounterCreator conditionCreator,
+        private static IEnumerable<(ConditionWrapper, Vector3, string)> GetPositionsForConditionCreator(ConditionCounterCreator conditionCreator,
                                                                             string questName, string conditionDescription)
         {
             var counter = conditionCreator.TemplateConditions;
             foreach (var condition in counter.Conditions)
             {
-                foreach (var position in GetPositionsForCondition(condition, questName, conditionDescription))
+                foreach (var position in GetConditionData(condition, questName, conditionDescription))
                 {
+                    position.Condition.Parent = conditionCreator;
                     yield return position;
                 }
+            }
+        }
+
+        private class ConditionWrapper
+        {
+            public Condition InnerCondition { get; }
+            public ConditionCounterCreator Parent { get; set; }
+            public ConditionWrapper(Condition condition)
+            {
+                InnerCondition = condition;
             }
         }
 
@@ -364,7 +459,7 @@ namespace DynamicMaps.Utils
             return triggerWithIds.Where(t => t.Id == zoneId);
         }
 
-        private static MapMarkerDef CreateQuestMapMarkerDef(Vector3 position, string questName, string conditionDescription)
+        private static MapMarkerDef CreateQuestMapMarkerDef(Vector3 position, string questName, string conditionDescription, TriggerWithIdAbstraction triggerWithIdAbstraction)
         {
             return new MapMarkerDef
             {
@@ -373,7 +468,8 @@ namespace DynamicMaps.Utils
                 ImagePath = _questImagePath,
                 Position = position,
                 Pivot = _questPivot,
-                Text = questName
+                Text = questName,
+                ZoneTrigger = triggerWithIdAbstraction
             };
         }
     }
