@@ -17,7 +17,7 @@ namespace DynamicMaps.UI.Components
         public static TransformMapMarker Create(Transform followingTransform, GameObject parent, string imagePath, Color color,
                                                 string name, string category, Vector2 size, float degreesRotation, float scale)
         {
-            var marker = Create<TransformMapMarker>(parent, name, category, imagePath, color,
+            var marker = Create<TransformMapMarker>(parent, name, string.Empty, category, imagePath, color,
                                                     MathUtils.ConvertToMapPosition(followingTransform),
                                                     size, _pivot, degreesRotation, scale);
             marker.IsDynamic = true;

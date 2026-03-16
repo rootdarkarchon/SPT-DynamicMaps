@@ -104,7 +104,7 @@ namespace DynamicMaps.Utils
                         continue;
                     }
 
-                    markers.Add(CreateQuestMapMarkerDef(data, questName, traderAvatar));
+                    markers.Add(CreateQuestMapMarkerDef(data, questName, conditionDescription, traderAvatar));
                 }
             }
 
@@ -150,7 +150,7 @@ namespace DynamicMaps.Utils
                     })];
         }
 
-        private static MapMarkerDef CreateQuestMapMarkerDef(ConditionWrapper data, string questName, Task<Sprite> traderAvatar)
+        private static MapMarkerDef CreateQuestMapMarkerDef(ConditionWrapper data, string questName, string conditionDescription, Task<Sprite> traderAvatar)
         {
             return new MapMarkerDef
             {
@@ -163,7 +163,8 @@ namespace DynamicMaps.Utils
                 Pivot = _questPivot,
                 Text = questName,
                 ZoneTrigger = data.ZoneTrigger,
-                LabelSprite = traderAvatar
+                LabelSprite = traderAvatar,
+                OnClickText = conditionDescription
             };
         }
 

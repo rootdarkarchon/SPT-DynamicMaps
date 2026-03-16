@@ -53,6 +53,7 @@ namespace DynamicMaps.Data
         public string AssociatedItemId { get; set; } = "";
         public TriggerWithIdAbstraction ZoneTrigger { get; set; } = null;
         public Task<Sprite> LabelSprite { get; internal set; }
+        public string OnClickText { get; internal set; }
     }
 
     public class MapLabelDef

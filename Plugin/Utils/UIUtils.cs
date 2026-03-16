@@ -56,8 +56,7 @@ namespace DynamicMaps.Utils
         {
             if (text == null)
             {
-                Plugin.Log.LogWarning($"TrySetTMPOutline: text cannot be null");
-                return false;
+                return true;
             }
 
             try

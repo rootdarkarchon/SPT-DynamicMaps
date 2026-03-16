@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace DynamicMaps.UI.Components
 {
-    public class MapMarker : MonoBehaviour, ILayerBound, IPointerEnterHandler, IPointerExitHandler
+    public class MapMarker : MonoBehaviour, ILayerBound, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
     {
         // TODO: this seems... not great?
         public static Dictionary<string, Dictionary<LayerStatus, float>> CategoryImageAlphaLayerStatus { get; protected set; }
@@ -78,8 +78,8 @@ namespace DynamicMaps.UI.Components
 
         private readonly Vector3[] _tmpCorners = new Vector3[4];
         private static Vector2 _labelSizeMultiplier = new Vector2(2.5f, 2f);
-        private static float _markerMinFontSize = 9f;
-        private static float _markerMaxFontSize = 13f;
+        private static float _markerMinFontSize = 11f;
+        private static float _markerMaxFontSize = 16f;
 
         public event Action<ILayerBound> OnPositionChanged;
 
@@ -92,6 +92,7 @@ namespace DynamicMaps.UI.Components
         public Image LayeredImage { get; protected set; }
         public Image LabelImage { get; protected set; }
         public TextMeshProUGUI Label { get; protected set; }
+        public TextMeshProUGUI OnClickLabel { get; protected set; }
         public RectTransform RectTransform => gameObject.transform as RectTransform;
         public RectTransform ZoneRectTransform { get; protected set; }
         public Image ZoneImage { get; protected set; }
@@ -183,6 +184,7 @@ namespace DynamicMaps.UI.Components
                 {LayerStatus.OnTop, 0.0f},
                 {LayerStatus.FullReveal, 1f},
             };
+        public RectTransform LabelRoot { get; private set; }
 
         private float _initialRotation;
         private bool _hasSetOutline = false;
@@ -357,7 +359,7 @@ namespace DynamicMaps.UI.Components
 
         public static MapMarker Create(GameObject parent, GameObject zoneParent, MapMarkerDef def, Vector2 size, float degreesRotation, float scale)
         {
-            var mapMarker = Create<MapMarker>(parent, def.Text, def.Category, def.ImagePath, def.Color, def.Position, size,
+            var mapMarker = Create<MapMarker>(parent, def.Text, def.OnClickText, def.Category, def.ImagePath, def.Color, def.Position, size,
                                               def.Pivot, degreesRotation, scale, def.ShowInRaid, def.Sprite, def.LayeredSprite, def.LabelSprite);
 
             mapMarker.AssociatedItemId = def.AssociatedItemId;
@@ -385,7 +387,7 @@ namespace DynamicMaps.UI.Components
             return mapMarker;
         }
 
-        public static T Create<T>(GameObject parent, string text, string category, string imageRelativePath, Color color,
+        public static T Create<T>(GameObject parent, string text, string onClickText, string category, string imageRelativePath, Color color,
                                   Vector3 position, Vector2 size, Vector2 pivot, float degreesRotation, float scale,
                                   bool showInRaid = true, Sprite sprite = null, Sprite layeredSprite = null, Task<Sprite> labelSpriteTask = null)
             where T : MapMarker
@@ -503,32 +505,26 @@ namespace DynamicMaps.UI.Components
             marker.ArrowImage.type = Image.Type.Simple;
 
             // label
-            var labelGO = UIUtils.CreateUIGameObject(visualGO, "label");
-            labelGO.AddComponent<CanvasRenderer>();
-
-            var labelRT = labelGO.GetRectTransform();
-            labelRT.anchorMin = new Vector2(0.5f, 0f);
-            labelRT.anchorMax = new Vector2(0.5f, 0f);
-            labelRT.pivot = new Vector2(0.5f, 1f);
-
             bool hasLabelImage = labelSpriteTask != null;
+            float labelImageSize = hasLabelImage ? Mathf.Min(size.x, size.y) * 0.65f : 0f;
+            float labelIconSpacing = hasLabelImage ? 3f : 0f;
 
-            float labelIconSize = Mathf.Min(size.x, size.y) * 0.65f;
-            labelRT.sizeDelta = size * _labelSizeMultiplier;
-            labelRT.sizeDelta = labelRT.sizeDelta with { x = labelRT.sizeDelta.x + labelIconSize };
+            float baseLabelWidth = size.x * _labelSizeMultiplier.x;
 
-            float labelIconSpacing = 3f;
-            float textLeftInset = hasLabelImage ? labelIconSize + labelIconSpacing : 0f;
+            // root container for icon + normal label + click label
+            var labelRootGO = UIUtils.CreateUIGameObject(visualGO, "labelRoot");
+            labelRootGO.AddComponent<CanvasRenderer>();
 
+            var labelRootRT = labelRootGO.GetRectTransform();
+            labelRootRT.anchorMin = new Vector2(0.5f, 0.5f);
+            labelRootRT.anchorMax = new Vector2(0.5f, 0.5f);
+
+            marker.LabelRoot = labelRootRT;
+
+            // icon
             if (hasLabelImage)
             {
-                labelRT.anchoredPosition = new Vector2(size.x * 0.55f, 0f); // move label to the right of the marker
-                labelRT.anchorMin = new Vector2(0.5f, 0.5f);
-                labelRT.anchorMax = new Vector2(0.5f, 0.5f);
-                labelRT.pivot = new Vector2(0f, 0.5f);
-
-                Plugin.Log.LogInfo($"Creating Label Sprite for {text}.");
-                var labelSpriteGO = UIUtils.CreateUIGameObject(labelGO, "labelSprite");
+                var labelSpriteGO = UIUtils.CreateUIGameObject(labelRootGO, "labelSprite");
                 labelSpriteGO.AddComponent<CanvasRenderer>();
 
                 var labelSpriteRT = labelSpriteGO.GetRectTransform();
@@ -536,38 +532,121 @@ namespace DynamicMaps.UI.Components
                 labelSpriteRT.anchorMax = new Vector2(0f, 0.5f);
                 labelSpriteRT.pivot = new Vector2(0f, 0.5f);
                 labelSpriteRT.anchoredPosition = Vector2.zero;
-                labelSpriteRT.sizeDelta = new Vector2(labelIconSize, labelIconSize);
+                labelSpriteRT.sizeDelta = new Vector2(labelImageSize, labelImageSize);
 
                 marker.LabelImage = labelSpriteGO.AddComponent<Image>();
                 marker.LabelImage.raycastTarget = false;
                 marker.LabelImage.type = Image.Type.Simple;
                 marker.LabelImage.preserveAspect = true;
-                if (labelSpriteTask.IsCompletedSuccessfully)
-                    marker.LabelImage.sprite = labelSpriteTask.Result;
-                else
-                    labelSpriteTask.ContinueWith(t => marker.LabelImage.sprite = t.Result);
-                marker.LabelImage.transform.SetAsFirstSibling();
+
+                marker.SetPendingLabelSprite(labelSpriteTask);
             }
 
-            marker.Label = labelGO.AddComponent<TextMeshProUGUI>();
+            // normal label text
+            var labelTextGO = UIUtils.CreateUIGameObject(labelRootGO, "labelText");
+            labelTextGO.AddComponent<CanvasRenderer>();
+
+            var labelTextRT = labelTextGO.GetRectTransform();
+            labelTextRT.sizeDelta = new Vector2(baseLabelWidth, 0f);
+
+            if (hasLabelImage)
+            {
+                labelRootRT.pivot = new Vector2(0f, 0.5f);
+                labelRootRT.anchoredPosition = new Vector2(size.x * 0.5f + 4f, 0f);
+                labelRootRT.sizeDelta = new Vector2(labelImageSize + labelIconSpacing + baseLabelWidth * 2f, 0f);
+
+                labelTextRT.anchorMin = labelTextRT.anchorMax = new Vector2(0f, 0.5f);
+                labelTextRT.pivot = new Vector2(0f, 0.5f);
+                labelTextRT.anchoredPosition = new Vector2(labelImageSize + labelIconSpacing, 0f);
+            }
+            else
+            {
+                labelRootRT.pivot = new Vector2(0.5f, 1f);
+                labelRootRT.anchoredPosition = new Vector2(0f, -size.y * 0.5f - 2f);
+                labelRootRT.sizeDelta = new Vector2(baseLabelWidth * 2f, 0f);
+
+                labelTextRT.anchorMin = labelTextRT.anchorMax = new Vector2(0.5f, 1f);
+                labelTextRT.pivot = new Vector2(0.5f, 1f);
+                labelTextRT.anchoredPosition = Vector2.zero;
+            }
+
+            marker.Label = labelTextGO.AddComponent<TextMeshProUGUI>();
             marker.Label.alignment = hasLabelImage ? TextAlignmentOptions.Left : TextAlignmentOptions.Top;
+            marker.Label.verticalAlignment = hasLabelImage ? VerticalAlignmentOptions.Middle : VerticalAlignmentOptions.Top;
             marker.Label.enableWordWrapping = true;
             marker.Label.enableAutoSizing = true;
             marker.Label.fontSizeMin = _markerMinFontSize;
             marker.Label.fontSizeMax = _markerMaxFontSize;
-            marker.Label.margin = new Vector4(textLeftInset, 0f, 0f, 0f);
             marker.Label.text = marker.Text;
             marker.Label.raycastTarget = false;
-
-            marker._hasSetOutline = UIUtils.TrySetTMPOutline(marker.Label);
-            marker.Label.gameObject.SetActive(false);
 
             marker.Color = color;
             marker._size = size;
 
+            marker._hasSetOutline = UIUtils.TrySetTMPOutline(marker.Label);
+
+            // click label text
+            if (!string.IsNullOrEmpty(onClickText))
+            {
+                var clickLabelGO = UIUtils.CreateUIGameObject(labelRootGO, "onClickLabel");
+                clickLabelGO.AddComponent<CanvasRenderer>();
+
+                var clickLabelRT = clickLabelGO.GetRectTransform();
+                clickLabelRT.anchorMin = clickLabelRT.anchorMax = new Vector2(0f, 0.5f);
+                clickLabelRT.pivot = new Vector2(0f, 0.5f);
+                clickLabelRT.anchoredPosition = new Vector2(labelImageSize + labelIconSpacing, 0f);
+                clickLabelRT.sizeDelta = new Vector2(baseLabelWidth * 2f, 0f);
+
+                if (!hasLabelImage)
+                {
+                    clickLabelRT.anchorMin = clickLabelRT.anchorMax = new Vector2(0.5f, 1f);
+                    clickLabelRT.pivot = new Vector2(0.5f, 1f);
+                    clickLabelRT.anchoredPosition = Vector2.zero;
+                }
+
+                marker.OnClickLabel = clickLabelGO.AddComponent<TextMeshProUGUI>();
+                marker.OnClickLabel.alignment = hasLabelImage ? TextAlignmentOptions.Left : TextAlignmentOptions.Center;
+                marker.OnClickLabel.verticalAlignment = VerticalAlignmentOptions.Middle;
+                marker.OnClickLabel.enableWordWrapping = true;
+                marker.OnClickLabel.enableAutoSizing = true;
+                marker.OnClickLabel.fontSizeMin = _markerMinFontSize - 1f;
+                marker.OnClickLabel.fontSizeMax = _markerMaxFontSize - 1f;
+                marker.OnClickLabel.text = onClickText;
+                marker.OnClickLabel.raycastTarget = false;
+                marker.OnClickLabel.color = color;
+
+                marker._hasSetOutline &= UIUtils.TrySetTMPOutline(marker.OnClickLabel);
+                marker.OnClickLabel.gameObject.SetActive(false);
+            }
+
             marker.Label.gameObject.SetActive(false);
 
             return marker;
+        }
+
+        private Task<Sprite>? _pendingLabelSpriteTask;
+        private bool _labelSpriteApplied;
+
+        public void SetPendingLabelSprite(Task<Sprite> task)
+        {
+            _pendingLabelSpriteTask = task;
+            _labelSpriteApplied = false;
+        }
+
+
+        private void Update()
+        {
+            if (_labelSpriteApplied || _pendingLabelSpriteTask == null)
+                return;
+
+            if (!_pendingLabelSpriteTask.IsCompleted)
+                return;
+
+            if (_pendingLabelSpriteTask.IsCompletedSuccessfully && LabelImage != null)
+                LabelImage.sprite = _pendingLabelSpriteTask.Result;
+
+            _labelSpriteApplied = true;
+            _pendingLabelSpriteTask = null;
         }
 
 
@@ -628,6 +707,7 @@ namespace DynamicMaps.UI.Components
             LayeredImage?.color = LayeredImage.color with { a = imageAlpha };
             LabelImage?.color = LabelImage.color with { a = labelAlpha };
             ArrowImage.color = ArrowImage.color with { a = imageAlpha };
+            OnClickLabel?.color = OnClickLabel.color with { a = labelAlpha };
 
             if (status is LayerStatus.OnTop)
             {
@@ -656,6 +736,7 @@ namespace DynamicMaps.UI.Components
 
             Image.gameObject.SetActive(imageAlpha > 0f);
             Label.gameObject.SetActive(labelAlpha > 0f);
+            LabelRoot.gameObject.SetActive(labelAlpha > 0f);
 
             LayeredImage?.gameObject.SetActive(imageAlpha > 0f);
             LabelImage?.gameObject.SetActive(labelAlpha > 0f);
@@ -667,6 +748,24 @@ namespace DynamicMaps.UI.Components
 
             if (!_isHovered)
                 UpdateZoneAttachmentLayout();
+        }
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (e.button == PointerEventData.InputButton.Left && OnClickLabel != null)
+            {
+                Label.gameObject.SetActive(false);
+                OnClickLabel.gameObject.SetActive(true);
+            }
+        }
+
+        public void OnPointerUp(PointerEventData e)
+        {
+            if (e.button == PointerEventData.InputButton.Left && OnClickLabel != null)
+            {
+                Label.gameObject.SetActive(true);
+                OnClickLabel.gameObject.SetActive(false);
+            }
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -698,10 +797,9 @@ namespace DynamicMaps.UI.Components
             Label.enableWordWrapping = true;
             Label.fontSizeMin = _markerMinFontSize;
             Label.fontSizeMax = _markerMaxFontSize;
-            Label.alignment = TextAlignmentOptions.Top;
             Label.text = $"{Label.text}";
 
-            _hasSetOutline = UIUtils.TrySetTMPOutline(Label);
+            _hasSetOutline = UIUtils.TrySetTMPOutline(Label) && UIUtils.TrySetTMPOutline(OnClickLabel);
         }
     }
 }
