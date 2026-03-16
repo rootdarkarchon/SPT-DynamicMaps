@@ -1,4 +1,3 @@
-using System.Reflection;
 using DynamicMaps.Common;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
@@ -9,6 +8,7 @@ using SPTarkov.Server.Core.Models.Enums;
 using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Services;
 using SPTarkov.Server.Core.Services.Mod;
+using System.Reflection;
 
 namespace _dynamicMapsServer;
 
@@ -17,7 +17,8 @@ public class DynamicMapsServer(
     DatabaseService databaseService,
     ModHelper modHelper,
     CustomItemService customItemService,
-    CustomStaticRouter customStaticRouter)
+    CustomStaticRouter customStaticRouter,
+    DynamicMapsPreload dynamicMapsPreload)
     : IOnLoad
 {
     private ModConfig? _modConfig;
@@ -27,7 +28,7 @@ public class DynamicMapsServer(
         var pathToMod = modHelper.GetAbsolutePathToModFolder(Assembly.GetExecutingAssembly());
         _modConfig = modHelper.GetJsonDataFromFile<ModConfig>(pathToMod, "config.json");
 
-        customStaticRouter.PassConfig(_modConfig, databaseService);
+        customStaticRouter.PassConfig(_modConfig, databaseService, dynamicMapsPreload);
 
         CreateNewMaps();
         return Task.CompletedTask;

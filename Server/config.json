@@ -22,7 +22,7 @@
   "AllowShowOtherCorpses": true,
   "AllowShowHeliCrashSiteInRaid": true,
   "AllowMiniMap": true,
-  "RequireMapInInventory": 0,
+  "RequireMapInInventory": false,
   "ShowScavIntelLevel": 0,
   "ShowPmcIntelLevel": 0,
   "ShowBossIntelLevel": 0,

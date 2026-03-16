@@ -27,10 +27,10 @@ public class CustomStaticRouter : StaticRouter
     {
     }
 
-    public void PassConfig(ModConfig config, DatabaseService database)
+    public void PassConfig(ModConfig config, DatabaseService database, DynamicMapsPreload dynamicMapsPreload)
     {
         _modConfig = config;
-        _spawnPoints = PopulateSpawnPoints(database);
+        _spawnPoints = dynamicMapsPreload.SpawnPointsDict;
     }
 
     private static List<RouteAction> GetCustomRoutes(DatabaseService database, SaveServer saveServer, ISptLogger<CustomStaticRouter> logger)
