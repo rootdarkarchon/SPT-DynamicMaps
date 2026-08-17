@@ -34,17 +34,24 @@ namespace DynamicMaps.UI
         private GameObject _mapBackgroundCameraRoot;
         private Camera _mapBackgroundCamera;
         private PostProcessLayer _mapBackgroundPostProcessLayer;
+        private RawImage _mapBackgroundOutputImage;
+        private RenderTexture _mapBackgroundRenderTexture;
 
         private RectTransform _mapBackgroundViewportRoot;
         private MapBackgroundView _mapBackgroundView;
         private Image _mapBackgroundVeilImage;
 
         private AssetBundle _postFxBundle;
+        private AssetBundle _compositeShaderBundle;
         private PostProcessResources _postFxResources;
+        private Material _mapBackgroundRenderMaterial;
+        private Material _mapBackgroundCompositeMaterial;
+        private bool _usesIsolatedBackgroundSmaa;
 
         private bool _initialized = false;
 
         private const string _postFxBundleRelativePath = "dynamicmaps-postfx";
+        private const string _compositeShaderBundleRelativePath = "dynamicmaps-composite";
         private const string _mapRelPath = "Maps";
         private const float _positionTweenTime = 0.25f;
         private const float _scrollZoomScaler = 1.75f;
@@ -206,6 +213,14 @@ namespace DynamicMaps.UI
             Settings.MiniMapSizeX.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
             Settings.MiniMapSizeY.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
 
+            ReleaseMapBackgroundRenderTexture();
+
+            if (_mapBackgroundRenderMaterial != null)
+                Destroy(_mapBackgroundRenderMaterial);
+
+            if (_mapBackgroundCompositeMaterial != null)
+                Destroy(_mapBackgroundCompositeMaterial);
+
             if (_mapBackgroundCanvasRoot != null)
                 Destroy(_mapBackgroundCanvasRoot);
 
@@ -214,10 +229,18 @@ namespace DynamicMaps.UI
 
             if (_postFxBundle != null)
                 _postFxBundle.Unload(false);
+
+            if (_compositeShaderBundle != null)
+                _compositeShaderBundle.Unload(false);
         }
 
         private void Update()
         {
+            if (_usesIsolatedBackgroundSmaa && _mapBackgroundCamera != null && _mapBackgroundCamera.enabled)
+            {
+                EnsureMapBackgroundRenderTexture();
+            }
+
             SyncBackgroundViewportToOverlay();
             SyncBackgroundView();
 
@@ -445,38 +468,164 @@ namespace DynamicMaps.UI
             _mapBackgroundView.RectTransform.localScale = Vector3.one;
             _mapBackgroundView.RectTransform.localRotation = Quaternion.identity;
 
-            SetupMapBackgroundCameraSmaa();
+            _usesIsolatedBackgroundSmaa = SetupIsolatedMapBackgroundSmaa();
 
             _mapBackgroundCanvasRoot.SetActive(false);
             _mapBackgroundCamera.enabled = false;
+
+            if (_mapBackgroundOutputImage != null)
+                _mapBackgroundOutputImage.gameObject.SetActive(false);
         }
 
-        private void SetupMapBackgroundCameraSmaa()
+        private bool SetupIsolatedMapBackgroundSmaa()
         {
-            var resources = LoadPostFxResources();
-            if (resources == null)
+            // A PostProcessLayer on the depth-only stacked camera copies EFT's preserved framebuffer
+            // through an orientation-sensitive image-effect buffer. Keep SMAA, but give it a target
+            // containing only premultiplied map UI and composite that target through the normal UI.
+            var postFxResources = LoadPostFxResources();
+            var compositeShader = LoadCompositeShader();
+
+            if (postFxResources == null || compositeShader == null)
             {
-                Plugin.Log.LogWarning("PostProcessResources could not be loaded. Background SMAA disabled.");
-                return;
+                Plugin.Log.LogWarning(
+                    "Isolated background SMAA unavailable. Falling back to direct map rendering.");
+                return false;
             }
 
+            _mapBackgroundRenderMaterial = new Material(compositeShader)
+            {
+                name = "DynamicMaps_MapBackgroundPremultipliedMaterial",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            _mapBackgroundRenderMaterial.SetFloat("_InputPremultiplied", 0f);
+
+            _mapBackgroundCompositeMaterial = new Material(compositeShader)
+            {
+                name = "DynamicMaps_MapBackgroundCompositeMaterial",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            _mapBackgroundCompositeMaterial.SetFloat("_InputPremultiplied", 1f);
+
+            var outputGO = UIUtils.CreateUIGameObject(gameObject, "MapBackgroundOutput");
+            var outputRt = outputGO.GetRectTransform();
+            StretchToParent(outputRt);
+            outputGO.transform.SetAsFirstSibling();
+
+            _mapBackgroundOutputImage = outputGO.AddComponent<RawImage>();
+            _mapBackgroundOutputImage.raycastTarget = false;
+            _mapBackgroundOutputImage.color = Color.white;
+            _mapBackgroundOutputImage.material = _mapBackgroundCompositeMaterial;
+
+            if (!EnsureMapBackgroundRenderTexture())
+            {
+                Destroy(outputGO);
+                _mapBackgroundOutputImage = null;
+                return false;
+            }
+
+            _mapBackgroundCamera.clearFlags = CameraClearFlags.SolidColor;
+            _mapBackgroundCamera.backgroundColor = Color.clear;
+
+            _mapBackgroundVeilImage.material = _mapBackgroundRenderMaterial;
+            _mapBackgroundView.SetRenderMaterial(_mapBackgroundRenderMaterial);
+
             _mapBackgroundPostProcessLayer = _mapBackgroundCamera.gameObject.AddComponent<PostProcessLayer>();
-            _mapBackgroundPostProcessLayer.Init(resources);
+            _mapBackgroundPostProcessLayer.Init(postFxResources);
             _mapBackgroundPostProcessLayer.volumeTrigger = _mapBackgroundCamera.transform;
             _mapBackgroundPostProcessLayer.volumeLayer = 0;
+            _mapBackgroundPostProcessLayer.finalBlitToCameraTarget = true;
             _mapBackgroundPostProcessLayer.antialiasingMode =
                 PostProcessLayer.Antialiasing.SubpixelMorphologicalAntialiasing;
             _mapBackgroundPostProcessLayer.subpixelMorphologicalAntialiasing.quality =
                 SubpixelMorphologicalAntialiasing.Quality.High;
+
+            Plugin.Log.LogInfo("Background SMAA configured on an isolated render target.");
+            return true;
         }
 
         private void SetBackgroundRenderObjectsActive(bool active)
         {
+            if (active && _usesIsolatedBackgroundSmaa)
+                EnsureMapBackgroundRenderTexture();
+
             if (_mapBackgroundCanvasRoot != null)
                 _mapBackgroundCanvasRoot.SetActive(active);
 
             if (_mapBackgroundCamera != null)
                 _mapBackgroundCamera.enabled = active;
+
+            if (_mapBackgroundOutputImage != null)
+                _mapBackgroundOutputImage.gameObject.SetActive(active && _usesIsolatedBackgroundSmaa);
+        }
+
+        private bool EnsureMapBackgroundRenderTexture()
+        {
+            if (_mapBackgroundCamera == null || _mapBackgroundOutputImage == null)
+                return false;
+
+            var width = Mathf.Max(Screen.width, 1);
+            var height = Mathf.Max(Screen.height, 1);
+
+            if (_mapBackgroundRenderTexture != null &&
+                _mapBackgroundRenderTexture.width == width &&
+                _mapBackgroundRenderTexture.height == height &&
+                _mapBackgroundRenderTexture.IsCreated())
+            {
+                return true;
+            }
+
+            var renderTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32)
+            {
+                name = "DynamicMaps_MapBackgroundTexture",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                useMipMap = false,
+                autoGenerateMips = false
+            };
+
+            if (!renderTexture.Create())
+            {
+                Plugin.Log.LogError(
+                    $"Failed to create isolated map background render texture ({width}x{height}).");
+                Destroy(renderTexture);
+                return false;
+            }
+
+            var previousTexture = _mapBackgroundRenderTexture;
+            _mapBackgroundRenderTexture = renderTexture;
+            _mapBackgroundCamera.targetTexture = renderTexture;
+            _mapBackgroundOutputImage.texture = renderTexture;
+
+            if (previousTexture != null)
+            {
+                previousTexture.Release();
+                Destroy(previousTexture);
+            }
+
+            Plugin.Log.LogInfo($"Created isolated map background render texture: {width}x{height}");
+            return true;
+        }
+
+        private void ReleaseMapBackgroundRenderTexture()
+        {
+            if (_mapBackgroundRenderTexture == null)
+                return;
+
+            if (_mapBackgroundCamera != null &&
+                _mapBackgroundCamera.targetTexture == _mapBackgroundRenderTexture)
+            {
+                _mapBackgroundCamera.targetTexture = null;
+            }
+
+            if (_mapBackgroundOutputImage != null &&
+                _mapBackgroundOutputImage.texture == _mapBackgroundRenderTexture)
+            {
+                _mapBackgroundOutputImage.texture = null;
+            }
+
+            _mapBackgroundRenderTexture.Release();
+            Destroy(_mapBackgroundRenderTexture);
+            _mapBackgroundRenderTexture = null;
         }
 
         private void SyncBackgroundView()
@@ -684,9 +833,7 @@ namespace DynamicMaps.UI
         private PostProcessResources LoadPostFxResources()
         {
             if (_postFxResources != null)
-            {
                 return _postFxResources;
-            }
 
             var bundlePath = Path.Combine(Plugin.Path, _postFxBundleRelativePath);
             if (!File.Exists(bundlePath))
@@ -711,6 +858,33 @@ namespace DynamicMaps.UI
 
             Plugin.Log.LogInfo($"Loaded PostProcessResources from bundle: {bundlePath}");
             return _postFxResources;
+        }
+
+        private Shader LoadCompositeShader()
+        {
+            var bundlePath = Path.Combine(Plugin.Path, _compositeShaderBundleRelativePath);
+            if (!File.Exists(bundlePath))
+            {
+                Plugin.Log.LogWarning($"Map background composite shader bundle not found at: {bundlePath}");
+                return null;
+            }
+
+            _compositeShaderBundle = AssetBundle.LoadFromFile(bundlePath);
+            if (_compositeShaderBundle == null)
+            {
+                Plugin.Log.LogError($"Failed to load map background composite shader bundle: {bundlePath}");
+                return null;
+            }
+
+            var shader = _compositeShaderBundle.LoadAllAssets<Shader>().FirstOrDefault();
+            if (shader == null)
+            {
+                Plugin.Log.LogError("No shader found in map background composite bundle.");
+                return null;
+            }
+
+            Plugin.Log.LogInfo($"Loaded map background composite shader: {shader.name}");
+            return shader;
         }
 
         private void AdjustForOutOfRaid()

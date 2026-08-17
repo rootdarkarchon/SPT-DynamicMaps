@@ -15,6 +15,7 @@ namespace DynamicMaps.UI.Components
         public MapDef CurrentMapDef { get; private set; }
         public float CoordinateRotation { get; private set; }
         public int SelectedLevel { get; private set; }
+        public Material RenderMaterial { get; private set; }
 
         private readonly List<MapLayer> _layers = [];
 
@@ -52,6 +53,9 @@ namespace DynamicMaps.UI.Components
                 var layerDef = pair.Value;
 
                 var layer = MapLayer.Create(MapLayerContainer, layerName, layerDef, -CoordinateRotation);
+                if (layer.Graphic != null)
+                    layer.Graphic.material = RenderMaterial;
+
                 layer.IsOnDefaultLevel = layerDef.Level == mapDef.DefaultLevel;
                 _layers.Add(layer);
             }
@@ -72,6 +76,17 @@ namespace DynamicMaps.UI.Components
 
             _layers.Clear();
             CurrentMapDef = null;
+        }
+
+        public void SetRenderMaterial(Material material)
+        {
+            RenderMaterial = material;
+
+            foreach (var layer in _layers)
+            {
+                if (layer?.Graphic != null)
+                    layer.Graphic.material = material;
+            }
         }
 
         public void SelectTopLevel(int level)
