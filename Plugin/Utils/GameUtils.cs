@@ -1,12 +1,10 @@
 using EFT.InventoryLogic;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SPT.Reflection.Utils;
 using Comfort.Common;
 using EFT;
-using EFT.Vehicle;
 using HarmonyLib;
 using DynamicMaps.UI;
 
@@ -16,36 +14,10 @@ namespace DynamicMaps.Utils
     {
         // reflection        
         private static FieldInfo _playerCorpseField = AccessTools.Field(typeof(Player), "Corpse");
-        private static FieldInfo _playerLastAggressorField = AccessTools.Field(typeof(Player), "LastAggressor");
 
         public static EFT.IEftSession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
         public static Profile PlayerProfile => Session?.Profile;
         //
-
-        private static HashSet<WildSpawnType> _trackedBosses = new HashSet<WildSpawnType>
-        {
-            WildSpawnType.bossBoar,             // Kaban
-            WildSpawnType.bossBully,            // Reshala
-            WildSpawnType.bossGluhar,           // Glukhar
-            WildSpawnType.bossKilla,
-            WildSpawnType.bossKnight,
-            WildSpawnType.followerBigPipe,
-            WildSpawnType.followerBirdEye,
-            WildSpawnType.bossKolontay,
-            WildSpawnType.bossKojaniy,          // Shturman
-            WildSpawnType.bossSanitar,
-            WildSpawnType.bossTagilla,
-            WildSpawnType.bossPartisan,
-            WildSpawnType.bossZryachiy,
-            WildSpawnType.gifter,               // Santa
-            WildSpawnType.arenaFighterEvent,    // Blood Hounds
-            WildSpawnType.sectantPriest,        // Cultist Priest
-            WildSpawnType.bossTagillaAgro,      // Tagilla Labyrinth
-            WildSpawnType.bossKillaAgro,        // Killa Labyrinth
-            WildSpawnType.tagillaHelperAgro,    // Tagilla Helper Labyrinth
-            (WildSpawnType) 199,                // Legion
-            (WildSpawnType) 801,                // Punisher
-        };
 
         private static readonly Dictionary<string, string> MapLookUp = new()
         {
@@ -92,12 +64,6 @@ namespace DynamicMaps.Utils
             return PlayerProfile;
         }
 
-        public static BTRView GetBTRView()
-        {
-            var gameWorld = Singleton<GameWorld>.Instance;
-            return gameWorld?.BtrController?.BtrView;
-        }
-
         public static bool IsScavRaid()
         {
             var player = GetMainPlayer();
@@ -132,61 +98,6 @@ namespace DynamicMaps.Utils
             return !string.IsNullOrEmpty(mainPlayerGroupId) && player.GroupId == mainPlayerGroupId;
         }
 
-        public static bool IsTrackedBoss(this IPlayer player)
-        {
-            return player.Profile.Side == EPlayerSide.Savage && _trackedBosses.Contains(player.Profile.Info.Settings.Role);
-        }
-
-        public static bool IsPMC(this IPlayer player)
-        {
-            return player.Profile.Side == EPlayerSide.Bear || player.Profile.Side == EPlayerSide.Usec;
-        }
-
-        public static bool IsScav(this IPlayer player)
-        {
-            return player.Profile.Side == EPlayerSide.Savage;
-        }
-
-        public static bool DidMainPlayerKill(this IPlayer player)
-        {
-            var aggressor = _playerLastAggressorField.GetValue(player) as IPlayer;
-            if (aggressor == null)
-            {
-                return false;
-            }
-
-            var mainPlayer = GetMainPlayer();
-            if (aggressor.ProfileId == mainPlayer.ProfileId)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        public static bool DidTeammateKill(this IPlayer player)
-        {
-            var aggressor = _playerLastAggressorField.GetValue(player) as IPlayer;
-            if (aggressor == null || string.IsNullOrEmpty(aggressor.GroupId))
-            {
-                return false;
-            }
-
-            var mainPlayer = GetMainPlayer();
-            if (aggressor.ProfileId != mainPlayer.ProfileId && aggressor.GroupId == GetMainPlayer().GroupId)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        public static bool IsBTRShooter(this IPlayer player)
-        {
-            return player.Profile.Side == EPlayerSide.Savage
-                && player.Profile.Info.Settings.Role == WildSpawnType.shooterBTR;
-        }
-
         public static bool HasCorpse(this Player player)
         {
             return _playerCorpseField.GetValue(player) != null;
@@ -201,13 +112,6 @@ namespace DynamicMaps.Utils
         {
             return PlayerProfile.Hideout.Areas
                 .SingleOrDefault(a => a.AreaType == EAreaType.IntelligenceCenter)?.Level;
-        }
-
-        public static MongoID[] GetWishListItems()
-        {
-            var wishList = PlayerProfile.WishlistManager.GetWishlist();
-
-            return wishList.Keys.ToArray();
         }
 
         public static bool ShouldShowMapInRaid()

@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using BepInEx.Configuration;
-using DynamicMaps.ExternalModSupport;
 using DynamicMaps.Utils;
 using UnityEngine;
 
@@ -36,25 +35,12 @@ namespace DynamicMaps.Config
         private const string DynamicMarkerTitle = "2. Dynamic Markers";
         public static ConfigEntry<bool> ShowPlayerMarker;
         public static ConfigEntry<bool> ShowFriendlyPlayerMarkersInRaid;
-        public static ConfigEntry<bool> ShowEnemyPlayerMarkersInRaid;
-        public static ConfigEntry<bool> ShowScavMarkersInRaid;
-        public static ConfigEntry<bool> ShowBossMarkersInRaid;
         public static ConfigEntry<bool> ShowLockedDoorStatus;
         public static ConfigEntry<bool> ShowQuestsInRaid;
         public static ConfigEntry<bool> ShowExtractsInRaid;
         public static ConfigEntry<bool> ShowExtractStatusInRaid;
         public static ConfigEntry<bool> ShowTransitPointsInRaid;
         public static ConfigEntry<bool> ShowSecretPointsInRaid;
-        public static ConfigEntry<bool> ShowDroppedBackpackInRaid;
-        public static ConfigEntry<bool> ShowWishListItemsInRaid;
-        public static ConfigEntry<bool> ShowBTRInRaid;
-        public static ConfigEntry<bool> ShowAirdropsInRaid;
-        public static ConfigEntry<bool> ShowHiddenStashesInRaid;
-        public static ConfigEntry<bool> ShowFriendlyCorpsesInRaid;
-        public static ConfigEntry<bool> ShowKilledCorpsesInRaid;
-        public static ConfigEntry<bool> ShowFriendlyKilledCorpsesInRaid;
-        public static ConfigEntry<bool> ShowBossCorpsesInRaid;
-        public static ConfigEntry<bool> ShowOtherCorpsesInRaid;
         
         #endregion
 
@@ -62,14 +48,7 @@ namespace DynamicMaps.Config
 
         private const string ProgressionTitle = "3. Progression";
         public static ConfigEntry<bool> RequireMapInInventory;
-        public static ConfigEntry<int> ShowPmcIntelLevel;
-        public static ConfigEntry<int> ShowBossIntelLevel;
-        public static ConfigEntry<int> ShowScavIntelLevel;
         public static ConfigEntry<int> ShowFriendlyIntelLevel;
-        public static ConfigEntry<int> ShowCorpseIntelLevel;
-        public static ConfigEntry<int> ShowAirdropIntelLevel;
-        public static ConfigEntry<int> ShowWishListItemsIntelLevel;
-        public static ConfigEntry<int> ShowHiddenStashIntelLevel;
         
         #endregion
         
@@ -93,34 +72,15 @@ namespace DynamicMaps.Config
 
         private const string MarkerColors = "6. Marker Colors";
         public static ConfigEntry<Color> PlayerColor;
-        public static ConfigEntry<Color> PmcBearColor;
-        public static ConfigEntry<Color> PmcUsecColor;
-        public static ConfigEntry<Color> ScavColor;
-        public static ConfigEntry<Color> BossColor;
-        public static ConfigEntry<Color> AirdropColor;
-        public static ConfigEntry<Color> BackpackColor;
-        public static ConfigEntry<Color> LootItemColor;
-        public static ConfigEntry<Color> KilledCorpseColor;
-        public static ConfigEntry<Color> KilledBossColor;
-        public static ConfigEntry<Color> KilledOtherColor;
-        public static ConfigEntry<Color> BtrColor;
         public static ConfigEntry<Color> ExtractDefaultColor;
         public static ConfigEntry<Color> ExtractOpenColor;
         public static ConfigEntry<Color> ExtractClosedColor;
         public static ConfigEntry<Color> ExtractHasRequirementsColor;
         public static ConfigEntry<Color> TransPointColor;
         public static ConfigEntry<Color> SecretPointColor;
-        public static ConfigEntry<Color> HiddenStashColor;
         
         #endregion
-        
-        #region External Mod Support
-        
-        private const string ExternModSupport = "7. External Mod Support";
-        public static ConfigEntry<bool> ShowHeliCrashMarker;
-        
-        #endregion
-        
+
         // public static ConfigEntry<KeyboardShortcut> KeyboardShortcut;
 
         public static void Init(ConfigFile config)
@@ -266,33 +226,6 @@ namespace DynamicMaps.Config
                     null,
                     new ConfigurationManagerAttributes { })));
 
-            ConfigEntries.Add(ShowEnemyPlayerMarkersInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Enemy Player Markers",
-                false,
-                new ConfigDescription(
-                    "If enemy player markers should be shown in-raid (generally for debug, can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowScavMarkersInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Scav Markers",
-                false,
-                new ConfigDescription(
-                    "If enemy scav markers should be shown in-raid (generally for debug, can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowBossMarkersInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Boss Markers",
-                false,
-                new ConfigDescription(
-                    "If enemy boss markers should be shown in-raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
             ConfigEntries.Add(ShowLockedDoorStatus = config.Bind(
                 DynamicMarkerTitle,
                 "Show Locked Door Status",
@@ -347,96 +280,6 @@ namespace DynamicMaps.Config
                     null,
                     new ConfigurationManagerAttributes { })));
 
-            ConfigEntries.Add(ShowDroppedBackpackInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Dropped Backpack In Raid",
-                true,
-                new ConfigDescription(
-                    "If the player's dropped backpacks (not anyone elses) should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowWishListItemsInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show wish listed items In Raid",
-                true,
-                new ConfigDescription(
-                    "Shows items that are in your wishlist on the map in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowBTRInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show BTR In Raid",
-                true,
-                new ConfigDescription(
-                    "If the BTR should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowAirdropsInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Airdrops In Raid",
-                true,
-                new ConfigDescription(
-                    "If airdrops should be shown in raid when they land (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowHiddenStashesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Hidden Stashes In Raid",
-                true,
-                new ConfigDescription(
-                    "If hidden stashes should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowFriendlyCorpsesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Friendly Corpses In Raid",
-                true,
-                new ConfigDescription(
-                    "If friendly corpses should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowKilledCorpsesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Player-killed Corpses In Raid",
-                true,
-                new ConfigDescription(
-                    "If corpses killed by the player should be shown in raid, killed bosses will be shown in another color (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowFriendlyKilledCorpsesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Friendly-killed Corpses In Raid",
-                true,
-                new ConfigDescription(
-                    "If corpses killed by friendly players should be shown in raid, killed bosses will be shown in another color (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowBossCorpsesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Boss Corpses In Raid",
-                false,
-                new ConfigDescription(
-                    "If boss corpses (other than ones killed by the player) should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ShowOtherCorpsesInRaid = config.Bind(
-                DynamicMarkerTitle,
-                "Show Other Corpses In Raid",
-                false,
-                new ConfigDescription(
-                    "If corpses (other than friendly ones or ones killed by the player) should be shown in raid (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-
             #endregion
             
             #region Progression
@@ -449,76 +292,13 @@ namespace DynamicMaps.Config
                     "Requires you to have a map in your inventory in order to view the map in raid (can be overridden by server).",
                     null,
                     new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowPmcIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show PMCs",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show PMCs (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowBossIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show bosses",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show bosses (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowScavIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show scavs",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show scavs (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
+
             ConfigEntries.Add(ShowFriendlyIntelLevel = config.Bind(
                 ProgressionTitle,
                 "Intel level required to show friendly PMCs",
                 0,
                 new ConfigDescription(
                     "If intel level is at or above this value it will show friendly PMCs (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowCorpseIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show corpses",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show corpses (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowAirdropIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show airdrops",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show airdrops (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowWishListItemsIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show wish listed loot items",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show wish listed loot items (can be overridden by server)",
-                    new AcceptableValueRange<int>(0, 3),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ShowHiddenStashIntelLevel = config.Bind(
-                ProgressionTitle,
-                "Intel level required to show hidden stashes",
-                0,
-                new ConfigDescription(
-                    "If intel level is at or above this value it will show hidden stashes (can be overridden by server)",
                     new AcceptableValueRange<int>(0, 3),
                     new ConfigurationManagerAttributes { })));
 
@@ -623,106 +403,7 @@ namespace DynamicMaps.Config
                     "Color of the marker",
                     null,
                     new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(PmcBearColor = config.Bind(
-                MarkerColors,
-                "Bear marker color",
-                new Color(1, 0, 0),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(PmcUsecColor = config.Bind(
-                MarkerColors,
-                "Usec marker color",
-                new Color(1, 1, 0),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ScavColor = config.Bind(
-                MarkerColors,
-                "Scav marker color",
-                new Color(1, 0.45f, 0.007f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(BossColor = config.Bind(
-                MarkerColors,
-                "Boss marker color",
-                new Color(1f, 0.45f, 0.007f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(AirdropColor = config.Bind(
-                MarkerColors,
-                "Airdrop marker color",
-                new Color(1f, 0.30f, 0.007f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(BackpackColor = config.Bind(
-                MarkerColors,
-                "Backpack marker color",
-                new Color(0f, 1f, 0.0f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(LootItemColor = config.Bind(
-                MarkerColors,
-                "Loot marker color",
-                new Color(0.98f, 0.81f, 0.007f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(KilledCorpseColor = config.Bind(
-                MarkerColors,
-                "Killed corpse marker color",
-                new Color(1f, 0.0f, 0.0f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
 
-            ConfigEntries.Add(KilledBossColor = config.Bind(
-                MarkerColors,
-                "Killed boss corpse marker color",
-                new Color(1f, 0.0f, 1.0f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(KilledOtherColor = config.Bind(
-                MarkerColors,
-                "Killed by other corpse marker color",
-                new Color(1f, 1f, 1f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(BtrColor = config.Bind(
-                MarkerColors,
-                "BTR marker color",
-                new Color(0.21f, 0.39f, 0.16f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
             ConfigEntries.Add(ExtractDefaultColor = config.Bind(
                 MarkerColors,
                 "Extract default marker color",
@@ -777,32 +458,8 @@ namespace DynamicMaps.Config
                     null,
                     new ConfigurationManagerAttributes { })));
 
-            ConfigEntries.Add(HiddenStashColor = config.Bind(
-                MarkerColors,
-                "Hidden stash marker color",
-                new Color(1f, 0.92f, 0.01f),
-                new ConfigDescription(
-                    "Color of the marker",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
             #endregion
-            
-            #region ExternalModSupport
 
-            ConfigEntries.Add(ShowHeliCrashMarker = config.Bind(
-                ExternModSupport,
-                "Show Heli Crash Marker",
-                true,
-                new ConfigDescription(
-                    "If the heli crash site should be marked in raid",
-                    null,
-                    new ConfigurationManagerAttributes { 
-                        Browsable = ModDetection.HeliCrashLoaded
-                    })));
-            
-            #endregion
-            
             RecalcOrder();
         }
         

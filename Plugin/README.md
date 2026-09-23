@@ -16,15 +16,6 @@ An SPT mod that adds a custom in-game map viewer in the place of the BSG map scr
 #### Quest Indicators
 ![Quest Indicators](Screenshots/quest_markers.png)
 
-#### BTR Marker
-![BTR Marker](Screenshots/btr_marker.png)
-
-#### Airdrop Marker
-![Airdrop Marker](Screenshots/airdrop_marker.png)
-
-#### Corpse Markers
-![Corpse Markers](Screenshots/corpse_markers.png)
-
 ### Features
 
 - Map organized in stacked layers / levels
@@ -38,14 +29,8 @@ An SPT mod that adds a custom in-game map viewer in the place of the BSG map scr
 - Icon-based map markers placed both statically and dynamically. Currently:
   - In-raid dynamic player icon
   - In-raid dynamic current extracts for player
-  - In-raid dynamic quest icons (loosely based on [Prop's GTFO](https://github.com/dvize/GTFO))
-  - In-raid dynamic player-dropped backpacks
-  - In-raid dynamic BTR icon (with icon by Kuromi, see [`marker_credits.txt`](Resources/Markers/marker_credits.txt) for more info)
-  - In-raid dynamic airdrop icons (generated when airdrop lands)
-  - In-raid dynamic markers for corpses
-  - In-raid dynamic other players/bots icons
-    - Friendly players will only show if using another mod that adds multiplayer or adds friendly bots (not sure if that exists)
-    - Enemy players, bosses, and scavs off by default, intended for mostly debug
+  - In-raid and out-of-raid quest icons (loosely based on [Prop's GTFO](https://github.com/dvize/GTFO))
+  - In-raid friendly player markers for players in your group (requires multiplayer or friendly-bot support)
   - Static markers for all extracts for all maps out-of-raid
   - Statically-loaded locked door with dynamic icon and color based on key status
     - Out-of-raid, green with key means player has it in inventory, yellow with key means key in stash, red with lock otherwise
@@ -71,21 +56,26 @@ See [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) for known current issues and [`FEATURE_
 
 - **Show Player Marker**: If the player marker should be shown in raid
 - **Show Friendly Player Markers**: If friendly player markers should be shown
-- **Show Enemy Player Markers**: If enemy player markers should be shown (generally for debug)
-- **Show Scav Markers**: If enemy scav markers should be shown (generally for debug)
-- **Show Boss Markers**: If enemy boss markers should be shown
 - **Show Locked Door Status**: If locked door markers should be updated with status based on key acquisition
 - **Show Quests In Raid**: If quests should be shown in raid
 - **Show Extracts In Raid**: If extracts should be shown in raid
 - **Show Extracts Status In Raid**: If extracts should be colored according to their status in raid
-- **Show Dropped Backpack In Raid**: If the player's dropped backpacks (not anyone elses) should be shown in raid
-- **Show BTR In Raid**: If the BTR should be shown in raid
-- **Show Airdrop In Raid**: If airdrops should be shown in raid when they land
-- **Show Friendly Corpses In Raid**: If friendly corpses should be shown in raid
-- **Show Player-killed Corpses In Raid**: If corpses killed by the player should be shown in raid, killed bosses will be shown in another color
-- **Show Friendly-killed Corpses In Raid**: If corpses killed by friendly players should be shown in raid, killed bosses will be shown in another color
-- **Show Boss Corpses In Raid**: If boss corpses (other than ones killed by the player) should be shown in raid
-- **Show Other Corpses In Raid**: If corpses (other than friendly ones or ones killed by the player) should be shown in raid
+- **Show Transit Points In Raid**: If transit points should be shown in raid
+- **Show Secret Extracts In Raid**: If secret extracts should be shown in raid
+
+### Progression
+
+- **Require a map in your inventory**: Require the matching map item to view the map in raid
+- **Intel level required to show friendly PMCs**: Intelligence Center level needed for friendly player markers (0-3)
+
+The server can disallow each marker option, require a map, and enforce a minimum Intelligence Center level for friendly markers. The stricter server/client requirement applies.
+
+### Marker Colors
+
+- Your player marker
+- Extracts: default, open, closed, and requirements
+- Transit points
+- Secret extracts
 
 ### In-Raid
 
@@ -109,5 +99,5 @@ Distributed under the MIT license. See [`LICENSE.txt`](LICENSE.txt) for more det
 - [CJ](https://github.com/CJ-SPT) for letting me hack on [StashSearch](https://github.com/CJ-SPT/StashSearch) as my first SPT-AKI modding experience
 - [DrakiaXYZ](https://github.com/DrakiaXYZ) for having multiple great mods to look at for examples
 - [Arys](https://github.com/Nympfonic) for being awesome
-- [Kuromi](https://github.com/schkuromi/) for the BTR icon and constant support
+- [Kuromi](https://github.com/schkuromi/) for constant support
 - Multiple people in the SPT Discord for suggestions and encouragement

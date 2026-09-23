@@ -77,26 +77,17 @@ void Method(string type, string name, params string[] parameters) => Check(
     $"ABI method {type}.{name}");
 Field("EFT.TarkovApplication", "_menuOperation", "EFT.MainMenuShowOperation");
 Field("EFT.UI.InventoryScreen", "_mapScreen", "EFT.UI.Map.MapScreen");
-Field("EFT.Airdrop.ClientAirDrop", "_syncObject", "EFT.SynchronizableObjects.AirdropSynchronizableObject");
 Field("EFT.UI.ItemContextInteractionsSwitcher", "_item", "EFT.InventoryLogic.Item");
 Field("EFT.Player", "Corpse", "EFT.Interactive.Corpse");
-Field("EFT.Player", "LastAggressor", "EFT.IPlayer");
-Method("EFT.Airdrop.ClientAirDrop", "CloseParachute");
 Method("EFT.UI.ItemContextInteractionsSwitcher", "IsActive", "EFT.InventoryLogic.EItemInfoButton");
 Method("EFT.UI.Map.MapScreen", "Show", "EFT.InventoryLogic.InventoryController", "EFT.InventoryLogic.CompoundItem");
 Method("EFT.UI.Map.MapScreen", "Close");
 Method("EFT.Version", "Create", "System.String", "System.String", "System.String", "System.String");
-Method("EFT.GameWorld", "OnGameStarted");
 Method("EFT.GameWorld", "OnDestroy");
 Method("EFT.GameWorld", "UnregisterPlayer", "EFT.IPlayer");
-Method("EFT.GameWorld", "DestroyLoot", "IKillable");
 Method("EFT.Player", "OnDead", "EFT.EDamageType");
 Method("EFT.UI.CommonUI", "Awake");
 Method("EFT.UI.BattleUIScreen`2", "Show", "EFT.GamePlayerOwner");
-Method("EFT.Interactive.LootItem", "Init", "EFT.InventoryLogic.Item", "System.String", "EFT.GameWorld", "System.Boolean", "EFT.MongoID[]", "System.String", "System.Boolean");
-var playerInventory = types["EFT.Player"].NestedTypes.Single(t => t.Name == "PlayerInventoryController");
-Check(playerInventory.Methods.Count(m => m.Name == "ThrowItem") == 1
-      && playerInventory.Fields.Any(f => f.Name == "Player" && f.FieldType.FullName == "EFT.Player"), "ABI player inventory throw hook");
 
 if (args.Contains("--database"))
 {

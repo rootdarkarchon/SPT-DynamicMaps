@@ -17,7 +17,6 @@ namespace DynamicMaps
     // the version number here is generated on build and may have a warning if not yet built
     [BepInPlugin("com.mpstark.DynamicMaps", "DynamicMaps", BuildInfo.Version)]
     [BepInDependency("com.SPT.custom", "4.1.0")]
-    [BepInDependency("com.SamSWAT.HeliCrash.ArysReloaded", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
         public const int TarkovVersion = 40743;
@@ -34,8 +33,6 @@ namespace DynamicMaps
                 throw new Exception("Invalid EFT Version");
             }
 
-            ExternalModSupport.ModDetection.CheckforMods();
-
             Settings.Init(Config);
             Config.SettingChanged += (x, y) => Map?.ReadConfig();
 
@@ -48,14 +45,9 @@ namespace DynamicMaps
             new CommonUIAwakePatch().Enable();
             new MapScreenShowPatch().Enable();
             new MapScreenClosePatch().Enable();
-            new GameStartedPatch().Enable();
             new GameWorldOnDestroyPatch().Enable();
             new GameWorldUnregisterPlayerPatch().Enable();
-            new LootItemInitPatch().Enable();
-            new GameWorldDestroyLootPatch().Enable();
-            new AirdropBoxOnBoxLandPatch().Enable();
             new PlayerOnDeadPatch().Enable();
-            new PlayerInventoryThrowItemPatch().Enable();
             new ShowViewButtonPatch().Enable();
             new MenuLoadPatch().Enable();
         }

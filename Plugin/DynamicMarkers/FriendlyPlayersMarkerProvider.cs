@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Comfort.Common;
-using DynamicMaps.Config;
 using DynamicMaps.Data;
 using DynamicMaps.Patches;
 using DynamicMaps.UI;
@@ -12,79 +11,11 @@ using UnityEngine;
 
 namespace DynamicMaps.DynamicMarkers
 {
-    public class OtherPlayersMarkerProvider : IDynamicMarkerProvider
+    public class FriendlyPlayersMarkerProvider : IDynamicMarkerProvider
     {
-        private const string _arrowImagePath = "Markers/arrow.png";
-        private const string _starImagePath = "Markers/star.png";
-        
         private const string _friendlyPlayerCategory = "Friendly Player";
-        private const string _friendlyPlayerImagePath = _arrowImagePath;
-        private static Color _friendlyPlayerColor = Color.Lerp(Color.blue, Color.white, 0.5f);
-
-        private const string _enemyPlayerCategory = "Enemy Player";
-        private const string _enemyPlayerImagePath = _arrowImagePath;
-
-        private const string _scavCategory = "Scav";
-        private const string _scavImagePath = _arrowImagePath;
-
-        private const string _bossCategory = "Boss";
-        private const string _bossImagePath = _starImagePath;
-        
-        private bool _showFriendlyPlayers = true;
-        public bool ShowFriendlyPlayers
-        {
-            get
-            {
-                return _showFriendlyPlayers;
-            }
-
-            set
-            {
-                HandleSetBoolOption(ref _showFriendlyPlayers, value);
-            }
-        }
-
-        private bool _showEnemyPlayers = false;
-        public bool ShowEnemyPlayers
-        {
-            get
-            {
-                return _showEnemyPlayers;
-            }
-
-            set
-            {
-                HandleSetBoolOption(ref _showEnemyPlayers, value);
-            }
-        }
-
-        private bool _showScavs = false;
-        public bool ShowScavs
-        {
-            get
-            {
-                return _showScavs;
-            }
-
-            set
-            {
-                HandleSetBoolOption(ref _showScavs, value);
-            }
-        }
-
-        private bool _showBosses = false;
-        public bool ShowBosses
-        {
-            get
-            {
-                return _showBosses;
-            }
-
-            set
-            {
-                HandleSetBoolOption(ref _showBosses, value);
-            }
-        }
+        private const string _friendlyPlayerImagePath = "Markers/arrow.png";
+        private static readonly Color _friendlyPlayerColor = Color.Lerp(Color.blue, Color.white, 0.5f);
 
         private MapView _lastMapView;
         private Dictionary<Player, PlayerMapMarker> _playerMarkers = [];
@@ -222,71 +153,25 @@ namespace DynamicMaps.DynamicMarkers
         private void TryAddMarker(IPlayer iPlayer)
         {
             var player = iPlayer as Player;
-            if (player is null || player.IsHeadlessClient())
+            if (player is null || player.IsYourPlayer || player.IsHeadlessClient())
             {
                 return;
             }
 
-            if (_lastMapView is null || player.IsBTRShooter() || _playerMarkers.ContainsKey(player))
+            if (_lastMapView is null || _playerMarkers.ContainsKey(player))
             {
                 return;
             }
             
-            // set category and color
-            var category = string.Empty;
-            var imagePath = string.Empty;
-            var color = Color.clear;
-            
-            var intelLevel = GameUtils.GetIntelLevel();
-            
-            if (player.IsGroupedWithMainPlayer() && ModdedMapScreen._config.ShowFriendlyIntelLevel <= intelLevel)
-            {
-                category = _friendlyPlayerCategory;
-                imagePath = _friendlyPlayerImagePath;
-                color = _friendlyPlayerColor;
-            }
-            else if (player.IsTrackedBoss() && ModdedMapScreen._config.ShowBossIntelLevel <= intelLevel)
-            {
-                category = _bossCategory;
-                imagePath = _bossImagePath;
-                color = Settings.BossColor.Value;
-            }
-            else if (player.IsPMC() && ModdedMapScreen._config.ShowPmcIntelLevel <= intelLevel)
-            {
-                category = _enemyPlayerCategory;
-                imagePath = _enemyPlayerImagePath;
-                color = player.Side == EPlayerSide.Bear
-                    ? Settings.PmcBearColor.Value
-                    : Settings.PmcUsecColor.Value;
-                    
-            }
-            else if (player.IsScav() && ModdedMapScreen._config.ShowScavIntelLevel <= intelLevel)
-            {
-                category = _scavCategory;
-                imagePath = _scavImagePath;
-                color = Settings.ScavColor.Value;
-            }
-
-            if (!ShouldShowCategory(category))
+            if (!player.IsGroupedWithMainPlayer()
+                || !(ModdedMapScreen._config.ShowFriendlyIntelLevel <= GameUtils.GetIntelLevel()))
             {
                 return;
             }
 
-            // try adding marker
-            var marker = _lastMapView.AddPlayerMarker(player, category, color, imagePath);
+            var marker = _lastMapView.AddPlayerMarker(player, _friendlyPlayerCategory,
+                _friendlyPlayerColor, _friendlyPlayerImagePath);
             _playerMarkers[player] = marker;
-        }
-
-        private void RemoveDisabledMarkers()
-        {
-            foreach (var player in _playerMarkers.Keys.ToList())
-            {
-                var marker = _playerMarkers[player];
-                if (!ShouldShowCategory(marker.Category))
-                {
-                    TryRemoveMarker(player);
-                }
-            }
         }
 
         private void TryRemoveMarker(Player player)
@@ -298,42 +183,6 @@ namespace DynamicMaps.DynamicMarkers
 
             _playerMarkers[player].ContainingMapView.RemoveMapMarker(_playerMarkers[player]);
             _playerMarkers.Remove(player);
-        }
-
-        private bool ShouldShowCategory(string category)
-        {
-            switch (category)
-            {
-                case _friendlyPlayerCategory:
-                    return _showFriendlyPlayers;
-                case _enemyPlayerCategory:
-                    return _showEnemyPlayers;
-                case _bossCategory:
-                    return _showBosses;
-                case _scavCategory:
-                    return _showScavs;
-                default:
-                    return false;
-            }
-        }
-
-        private void HandleSetBoolOption(ref bool boolOption, bool value)
-        {
-            if (value == boolOption)
-            {
-                return;
-            }
-
-            boolOption = value;
-
-            if (boolOption)
-            {
-                TryAddMarkers();
-            }
-            else
-            {
-                RemoveDisabledMarkers();
-            }
         }
 
         public void OnShowOutOfRaid(MapView map)

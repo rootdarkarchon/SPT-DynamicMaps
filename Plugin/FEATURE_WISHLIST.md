@@ -22,7 +22,6 @@
 
 - Locked door: what key is needed
 - Quests: the condition's description
-- Bot debug markers: additional bot debug information
 - Extracts: if cannot use immediately, what the hint is to enable it
 - Switches/buttons: what the button does
 

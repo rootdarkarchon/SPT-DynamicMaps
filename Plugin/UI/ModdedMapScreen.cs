@@ -4,8 +4,6 @@ using DG.Tweening;
 using DynamicMaps.Config;
 using DynamicMaps.Data;
 using DynamicMaps.DynamicMarkers;
-using DynamicMaps.ExternalModSupport;
-using DynamicMaps.ExternalModSupport.SamSWATHeliCrash;
 using DynamicMaps.Patches;
 using DynamicMaps.UI.Components;
 using DynamicMaps.UI.Controls;
@@ -1176,31 +1174,8 @@ namespace DynamicMaps.UI
             AddRemoveMarkerProvider<PlayerMarkerProvider>(_config.ShowPlayerMarker);
             AddRemoveMarkerProvider<QuestMarkerProvider>(_config.ShowQuestsInRaid);
             AddRemoveMarkerProvider<LockedDoorMarkerMutator>(_config.ShowLockedDoorStatus);
-            AddRemoveMarkerProvider<BackpackMarkerProvider>(_config.ShowDroppedBackpackInRaid);
-            AddRemoveMarkerProvider<BTRMarkerProvider>(_config.ShowBTRInRaid);
-            AddRemoveMarkerProvider<AirdropMarkerProvider>(_config.ShowAirdropsInRaid);
-            AddRemoveMarkerProvider<LootMarkerProvider>(_config.ShowWishlistedItemsInRaid);
-            AddRemoveMarkerProvider<HiddenStashMarkerProvider>(_config.ShowHiddenStashesInRaid);
             AddRemoveMarkerProvider<TransitMarkerProvider>(_config.ShowTransitPointsInRaid);
             AddRemoveMarkerProvider<SecretMarkerProvider>(_config.ShowSecretExtractsInRaid);
-
-            if (_config.ShowAirdropsInRaid)
-            {
-                GetMarkerProvider<AirdropMarkerProvider>()
-                    .RefreshMarkers();
-            }
-
-            if (_config.ShowWishlistedItemsInRaid)
-            {
-                GetMarkerProvider<LootMarkerProvider>()
-                    .RefreshMarkers();
-            }
-
-            if (_config.ShowHiddenStashesInRaid)
-            {
-                GetMarkerProvider<HiddenStashMarkerProvider>()
-                    .RefreshMarkers();
-            }
 
             // Transits
             if (_config.ShowTransitPointsInRaid)
@@ -1225,48 +1200,10 @@ namespace DynamicMaps.UI
                 provider.ShowExtractStatusInRaid = _config.ShowExtractsStatusInRaid;
             }
 
-            // other player markers
-            var needOtherPlayerMarkers = _config.ShowFriendlyPlayerMarkersInRaid
-                                      || _config.ShowEnemyPlayerMarkersInRaid
-                                      || _config.ShowBossMarkersInRaid
-                                      || _config.ShowScavMarkersInRaid;
-
-            AddRemoveMarkerProvider<OtherPlayersMarkerProvider>(needOtherPlayerMarkers);
-
-            if (needOtherPlayerMarkers)
+            AddRemoveMarkerProvider<FriendlyPlayersMarkerProvider>(_config.ShowFriendlyPlayerMarkersInRaid);
+            if (_config.ShowFriendlyPlayerMarkersInRaid)
             {
-                var provider = GetMarkerProvider<OtherPlayersMarkerProvider>();
-                provider.ShowFriendlyPlayers = _config.ShowFriendlyPlayerMarkersInRaid;
-                provider.ShowEnemyPlayers = _config.ShowEnemyPlayerMarkersInRaid;
-                provider.ShowScavs = _config.ShowScavMarkersInRaid;
-                provider.ShowBosses = _config.ShowBossMarkersInRaid;
-
-                provider.RefreshMarkers();
-            }
-
-            // corpse markers
-            var needCorpseMarkers = Settings.ShowFriendlyCorpsesInRaid.Value
-                                 || Settings.ShowKilledCorpsesInRaid.Value
-                                 || Settings.ShowFriendlyKilledCorpsesInRaid.Value
-                                 || Settings.ShowBossCorpsesInRaid.Value
-                                 || Settings.ShowOtherCorpsesInRaid.Value;
-
-            AddRemoveMarkerProvider<CorpseMarkerProvider>(needCorpseMarkers);
-            if (needCorpseMarkers)
-            {
-                var provider = GetMarkerProvider<CorpseMarkerProvider>();
-                provider.ShowFriendlyCorpses = _config.ShowFriendlyCorpses;
-                provider.ShowKilledCorpses = _config.ShowKilledCorpses;
-                provider.ShowFriendlyKilledCorpses = _config.ShowFriendlyKilledCorpses;
-                provider.ShowBossCorpses = _config.ShowBossCorpses;
-                provider.ShowOtherCorpses = _config.ShowOtherCorpses;
-
-                provider.RefreshMarkers();
-            }
-
-            if (ModDetection.HeliCrashLoaded)
-            {
-                AddRemoveMarkerProvider<HeliCrashMarkerProvider>(_config.ShowHeliCrashSiteInRaid);
+                GetMarkerProvider<FriendlyPlayersMarkerProvider>().RefreshMarkers();
             }
         }
 
