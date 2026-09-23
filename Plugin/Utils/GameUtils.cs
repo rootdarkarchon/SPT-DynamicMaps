@@ -1,3 +1,4 @@
+using EFT.InventoryLogic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,15 +18,8 @@ namespace DynamicMaps.Utils
         private static FieldInfo _playerCorpseField = AccessTools.Field(typeof(Player), "Corpse");
         private static FieldInfo _playerLastAggressorField = AccessTools.Field(typeof(Player), "LastAggressor");
 
-        private static Type _profileInterface = typeof(ISession).GetInterfaces().First(i =>
-            {
-                var properties = i.GetProperties();
-                return properties.Length == 2 &&
-                       properties.Any(p => p.Name == "Profile");
-            });
-        private static PropertyInfo _sessionProfileProperty = AccessTools.Property(_profileInterface, "Profile");
-        public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
-        public static Profile PlayerProfile => _sessionProfileProperty.GetValue(Session) as Profile;
+        public static EFT.IEftSession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+        public static Profile PlayerProfile => Session?.Profile;
         //
 
         private static HashSet<WildSpawnType> _trackedBosses = new HashSet<WildSpawnType>

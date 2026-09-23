@@ -1,34 +1,34 @@
 using DynamicMaps.Common;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
-using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Helpers.Server;
+using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Enums;
 using SPTarkov.Server.Core.Models.Spt.Mod;
 using SPTarkov.Server.Core.Services;
-using SPTarkov.Server.Core.Services.Mod;
+using SPTarkov.Server.Core.Services.Modding.Custom;
 using System.Reflection;
 
 namespace _dynamicMapsServer;
 
-[Injectable(TypePriority = OnLoadOrder.PostDBModLoader + 90000)]
+[Injectable(TypePriority = OnLoadOrder.TraderRegistration + 1)]
 public class DynamicMapsServer(
-    DatabaseService databaseService,
+    TradersTable tradersTable,
     ModHelper modHelper,
     CustomItemService customItemService,
-    CustomStaticRouter customStaticRouter,
-    DynamicMapsPreload dynamicMapsPreload)
+    CustomStaticRouter customStaticRouter)
     : IOnLoad
 {
     private ModConfig? _modConfig;
 
-    public Task OnLoad()
+    public Task OnLoadAsync(CancellationToken cancellationToken)
     {
         var pathToMod = modHelper.GetAbsolutePathToModFolder(Assembly.GetExecutingAssembly());
         _modConfig = modHelper.GetJsonDataFromFile<ModConfig>(pathToMod, "config.json");
 
-        customStaticRouter.PassConfig(_modConfig, databaseService, dynamicMapsPreload);
+        customStaticRouter.PassConfig(_modConfig);
 
         CreateNewMaps();
         return Task.CompletedTask;
@@ -48,6 +48,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails groundZeroMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_groundZeroMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "6738033eb7305d3bdafe9518",
@@ -82,6 +83,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails streetsMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_streetsMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "673803448cb3819668d77b1b",
@@ -116,6 +118,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails reserveMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_reserveMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "6738034a9713b5f42b4a8b78",
@@ -150,6 +153,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails labsMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_labsMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "6738034e9d22459ad7cd1b81",
@@ -184,6 +188,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails lighthouseMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_lighthouseMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "6738035350b24a4ae4a57997",
@@ -218,6 +223,7 @@ public class DynamicMapsServer(
     {
         NewItemFromCloneDetails labyrinthMap = new NewItemFromCloneDetails()
         {
+            NewItemName = "DynamicMaps_labyrinthMap",
             ItemTplToClone = ItemTpl.MAP_WOODS_PLAN,
             ParentId = "567849dd4bdc2d150f8b456e",
             NewId = "68f1ad32317cc52f4c0b6fae",
@@ -250,7 +256,8 @@ public class DynamicMapsServer(
 
     private void PushToTraderAssort(MongoId traderId, MongoId itemId, double? price, MongoId assortId)
     {
-        var assort = databaseService.GetTrader(traderId).Assort;
+        var assort = tradersTable.GetTrader(traderId)?.Assort
+            ?? throw new InvalidOperationException($"Trader {traderId} has no assortment");
 
         var assortEntry = new Item()
         {

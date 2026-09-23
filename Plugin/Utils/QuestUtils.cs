@@ -4,7 +4,6 @@ using DynamicMaps.Data;
 using EFT;
 using EFT.Interactive;
 using EFT.Quests;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,21 +38,21 @@ namespace DynamicMaps.Utils
 
         internal static void FillQuestDataOutOfRaid(List<ConditionData> data, MapDef def)
         {
-            _questItems ??= [.. data.Select(d => new LootItemAbstraction()
+            _questItems = [.. data.Where(d => d?.SpawnPoint?.Length == 3).Select(d => new LootItemAbstraction()
                 {
                     ItemId = d.ItemId,
                     Position = new Vector3(d.SpawnPoint[0], d.SpawnPoint[1], d.SpawnPoint[2])
                 })];
 
-            _triggersWithIds ??= [.. def.TriggersWithId];
+            _triggersWithIds = [.. def.TriggersWithId];
         }
 
-        internal static IEnumerable<MapMarkerDef> GetMarkerDefsForPlayer(AbstractQuestControllerClass questController)
+        internal static IEnumerable<MapMarkerDef> GetMarkerDefsForPlayer(EFT.Quests.QuestController questController)
         {
             if (_triggersWithIds == null || _questItems == null || questController == null)
             {
                 Plugin.Log.LogWarning($"TriggersWithIds null: {_triggersWithIds == null} or QuestItems null: {_questItems == null} or Player null: {questController == null}");
-                return null;
+                return Array.Empty<MapMarkerDef>();
             }
 
             var markers = new List<MapMarkerDef>();
@@ -61,24 +60,24 @@ namespace DynamicMaps.Utils
             var quests = GetIncompleteQuests(questController);
             foreach (var quest in quests)
             {
-                markers.AddRange(GetMarkerDefsForQuest(questController, quest));
+                markers.AddRange(GetMarkerDefsForQuest(quest));
             }
 
             return markers;
         }
 
-        private static IEnumerable<MapMarkerDef> GetMarkerDefsForQuest(AbstractQuestControllerClass questController, QuestDataClass quest)
+        private static IEnumerable<MapMarkerDef> GetMarkerDefsForQuest(Quest quest)
         {
             var markers = new List<MapMarkerDef>();
             if (!_asyncTraderIcons.TryGetValue(quest.Template.TraderId, out var traderAvatar))
             {
-                Singleton<BackendConfigSettingsClass>.Instance
+                Singleton<EFT.GlobalConfiguration>.Instance
                     .TradersSettings.TryGetValue(quest.Template.TraderId, out var trader);
 
                 _asyncTraderIcons[quest.Template.TraderId] = traderAvatar = trader?.GetAvatar();
             }
 
-            var conditions = GetIncompleteQuestConditions(questController, quest);
+            var conditions = GetIncompleteQuestConditions(quest);
             foreach (var condition in conditions)
             {
                 var questName = quest.Template.NameLocaleKey.BSGLocalized();
@@ -140,10 +139,7 @@ namespace DynamicMaps.Utils
                 }
             }
 
-            _questItems ??= [.. Traverse.Create(gameWorld)
-                    .Field("LootItems")
-                    .Field("List_0")
-                    .GetValue<List<LootItem>>()
+            _questItems ??= [.. gameWorld.LootItems
                     .Where(i => i.Item.QuestItem).Select(k => new LootItemAbstraction()
                     {
                         ItemId = k.TemplateId,
@@ -282,7 +278,7 @@ namespace DynamicMaps.Utils
             }
         }
 
-        private static IEnumerable<Condition> GetIncompleteQuestConditions(AbstractQuestControllerClass player, QuestDataClass quest)
+        private static IEnumerable<Condition> GetIncompleteQuestConditions(Quest quest)
         {
             // TODO: Template.Conditions is a GClass reference
             if (quest?.Template?.Conditions == null)
@@ -307,7 +303,7 @@ namespace DynamicMaps.Utils
                 }
 
                 // filter out completed conditions
-                if (IsConditionCompleted(player, quest, condition))
+                if (quest.IsConditionDone(condition))
                 {
                     continue;
                 }
@@ -316,7 +312,7 @@ namespace DynamicMaps.Utils
             }
         }
 
-        private static IEnumerable<QuestDataClass> GetIncompleteQuests(AbstractQuestControllerClass questController)
+        private static IEnumerable<Quest> GetIncompleteQuests(EFT.Quests.QuestController questController)
         {
             var quests = questController.Quests;
             if (quests == null)
@@ -325,21 +321,14 @@ namespace DynamicMaps.Utils
                 yield break;
             }
 
-            var questsList = quests.List_1;
-            if (questsList == null)
-            {
-                Plugin.Log.LogError($"Not able to get quests for player, questsList is null");
-                yield break;
-            }
-
-            foreach (var quest in questsList)
+            foreach (var quest in quests)
             {
                 if (quest?.Template?.Conditions == null)
                 {
                     continue;
                 }
 
-                if (quest.Status != EQuestStatus.Started)
+                if (quest.QuestStatus != EQuestStatus.Started)
                 {
                     continue;
                 }
@@ -356,8 +345,8 @@ namespace DynamicMaps.Utils
                 Sprite icon = null;
                 Sprite layeredIcon = null;
 
-                var counter = conditionCreator.TemplateConditions;
-                var killCondition = (counter?.Conditions ?? []).FirstOrDefault(c => c is ConditionKills) as ConditionKills;
+                var counter = conditionCreator.Conditions;
+                var killCondition = (counter ?? []).FirstOrDefault(c => c is ConditionKills) as ConditionKills;
                 if (killCondition is not null)
                 {
                     // target Any == any == kill icon
@@ -390,7 +379,7 @@ namespace DynamicMaps.Utils
                             layeredIcon = TextureUtils.GetOrLoadCachedSprite("Markers/kill_special.png");
                     }
                 }
-                foreach (var condition in counter?.Conditions ?? [])
+                foreach (var condition in counter ?? [])
                 {
                     foreach (var position in GetConditionData(condition))
                     {
@@ -431,30 +420,6 @@ namespace DynamicMaps.Utils
         private static IEnumerable<TriggerWithIdAbstraction> GetZoneTriggers(this IEnumerable<TriggerWithIdAbstraction> triggerWithIds, string zoneId)
         {
             return triggerWithIds.Where(t => t.Id == zoneId);
-        }
-
-        private static bool IsConditionCompleted(AbstractQuestControllerClass questController, QuestDataClass questData, Condition condition)
-        {
-            // CompletedConditions is inaccurate (it doesn't reset when some quests do on death)
-            // and also does not contain optional objectives, need to recheck if something is in there
-            if (condition.IsNecessary && !questData.CompletedConditions.Contains(condition.id))
-            {
-                return false;
-            }
-
-            var quests = questController.Quests;
-            if (quests == null)
-            {
-                return false;
-            }
-
-            var quest = quests.GetConditional(questData.Id);
-            if (quest == null)
-            {
-                return false;
-            }
-
-            return quest.IsConditionDone(condition);
         }
 
         internal class LootItemAbstraction

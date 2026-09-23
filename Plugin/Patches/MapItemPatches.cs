@@ -11,8 +11,8 @@ public class ShowViewButtonPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
     {
-        return AccessTools.Method(typeof(ContextInteractionSwitcherClass),
-            nameof(ContextInteractionSwitcherClass.IsActive));
+        return AccessTools.Method(typeof(EFT.UI.ItemContextInteractionsSwitcher),
+            nameof(EFT.UI.ItemContextInteractionsSwitcher.IsActive));
     }
 
     private static readonly HashSet<string> _mapsToIgnore = [
@@ -24,11 +24,11 @@ public class ShowViewButtonPatch : ModulePatch
     ];
 
     [PatchPostfix]
-    public static void PatchPrefix(ContextInteractionSwitcherClass __instance, EItemInfoButton button, ref bool __result)
+    public static void PatchPrefix(Item ____item, EItemInfoButton button, ref bool __result)
     {
         if (button is not EItemInfoButton.ViewMap || Settings.ReplaceMapScreen.Value) return;
 
-        var item = __instance.Item_0;
+        var item = ____item;
 
         __result = !_mapsToIgnore.Contains(item.TemplateId);
     }

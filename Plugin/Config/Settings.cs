@@ -87,22 +87,7 @@ namespace DynamicMaps.Config
 
         #endregion
 
-        #region Mini Map
-
-        private const string MiniMapTitle = "5. Mini-map";
-        public static ConfigEntry<bool> MiniMapEnabled;
-        public static ConfigEntry<EMiniMapPosition> MiniMapPosition;
-        public static ConfigEntry<float> MiniMapSizeX;
-        public static ConfigEntry<float> MiniMapSizeY;
-        public static ConfigEntry<float> MiniMapScreenOffsetX;
-        public static ConfigEntry<float> MiniMapScreenOffsetY;
         public static ConfigEntry<bool> MapTransitionEnabled;
-        public static ConfigEntry<KeyboardShortcut> MiniMapShowOrHide;
-        public static ConfigEntry<float> ZoomMiniMap;
-        public static ConfigEntry<KeyboardShortcut> ZoomInMiniMapHotkey;
-        public static ConfigEntry<KeyboardShortcut> ZoomOutMiniMapHotkey;
-        
-        #endregion
 
         #region Colors
 
@@ -627,100 +612,6 @@ namespace DynamicMaps.Config
             AutoCenterOnPlayerMarker.SettingChanged += OnAutoOrCenterEnable;
             ResetZoomOnCenter.SettingChanged += OnAutoOrCenterEnable;
             RetainMapPosition.SettingChanged += OnPositionRetainEnable;
-            
-            #region Mini Map
-
-            ConfigEntries.Add(MiniMapEnabled = config.Bind(
-                MiniMapTitle,
-                "Mini-map enabled",
-                true,
-                new ConfigDescription(
-                    "Enable the mini-map (can be overridden by server)",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapPosition = config.Bind(
-                MiniMapTitle,
-                "Mini-map position",
-                EMiniMapPosition.TopRight,
-                new ConfigDescription(
-                    "What corner is the mini-map displayed in",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapSizeX = config.Bind(
-                MiniMapTitle,
-                "Mini-map size horizontal",
-                275.0f,
-                new ConfigDescription(
-                    "Horizontal size of the mini-map",
-                    new AcceptableValueRange<float>(0f, 850f),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapSizeY = config.Bind(
-                MiniMapTitle,
-                "Mini-map size vertical",
-                275.0f,
-                new ConfigDescription(
-                    "Vertical size of the mini-map",
-                    new AcceptableValueRange<float>(0f, 850f),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapScreenOffsetX = config.Bind(
-                MiniMapTitle,
-                "Mini-map offset horizontal",
-                0.0f,
-                new ConfigDescription(
-                    "Horizontal Offset from the edge (These values update according to screen resolution, REQUIRES RESTART IF YOU CHANGED YOUR RESOLUTION)",
-                    new AcceptableValueRange<float>(-Screen.width / 4f, Screen.width),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapScreenOffsetY = config.Bind(
-                MiniMapTitle,
-                "Mini-map offset vertical",
-                0.0f,
-                new ConfigDescription(
-                    "Vertical offset from the edge (These values update according to screen resolution, REQUIRES RESTART IF YOU CHANGED YOUR RESOLUTION)",
-                    new AcceptableValueRange<float>(-Screen.height / 4f, Screen.height),
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(MiniMapShowOrHide = config.Bind(
-                MiniMapTitle,
-                "Show or Hide the mini-map",
-                new KeyboardShortcut(KeyCode.End),
-                new ConfigDescription(
-                    "Show or hide the mini-map",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ZoomMiniMap = config.Bind(
-                MiniMapTitle,
-                "Mini map zoom",
-                5.0f,
-                new ConfigDescription(
-                    "What zoom level should be used for the mini map. (0 is fully zoomed out, and 15 is fully zoomed in)",
-                    new AcceptableValueRange<float>(0f, 15f),
-                    new ConfigurationManagerAttributes { })));
-
-            ConfigEntries.Add(ZoomInMiniMapHotkey = config.Bind(
-                MiniMapTitle,
-                "Zoom in key bind",
-                new KeyboardShortcut(KeyCode.Keypad8),
-                new ConfigDescription(
-                    "Zoom in on mini map key bind",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            ConfigEntries.Add(ZoomOutMiniMapHotkey = config.Bind(
-                MiniMapTitle,
-                "Zoom out key bind",
-                new KeyboardShortcut(KeyCode.Keypad5),
-                new ConfigDescription(
-                    "Zoom out on mini map key bind",
-                    null,
-                    new ConfigurationManagerAttributes { })));
-            
-            #endregion
 
             #region MarkerColors
 

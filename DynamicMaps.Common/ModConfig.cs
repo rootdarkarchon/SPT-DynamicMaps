@@ -25,7 +25,6 @@ namespace DynamicMaps.Common
         public bool AllowShowBossCorpses { get; set; } = true;
         public bool AllowShowOtherCorpses { get; set; } = true;
         public bool AllowShowHeliCrashSiteInRaid { get; set; } = true;
-        public bool AllowMiniMap { get; set; } = true;
         public bool RequireMapInInventory { get; set; } = false;
         public int ShowScavIntelLevel { get; set; } = 0;
         public int ShowPmcIntelLevel { get; set; } = 0;

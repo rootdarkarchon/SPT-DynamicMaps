@@ -21,7 +21,6 @@
   "AllowShowBossCorpses": true,
   "AllowShowOtherCorpses": true,
   "AllowShowHeliCrashSiteInRaid": true,
-  "AllowMiniMap": true,
   "RequireMapInInventory": false,
   "ShowScavIntelLevel": 0,
   "ShowPmcIntelLevel": 0,

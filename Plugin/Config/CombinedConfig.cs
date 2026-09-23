@@ -27,7 +27,6 @@ namespace DynamicMaps.UI
         public bool ShowBossCorpses => ServerConfig.AllowShowBossCorpses && Settings.ShowBossCorpsesInRaid.Value;
         public bool ShowOtherCorpses => ServerConfig.AllowShowOtherCorpses && Settings.ShowOtherCorpsesInRaid.Value;
         public bool ShowHeliCrashSiteInRaid => ServerConfig.AllowShowHeliCrashSiteInRaid && Settings.ShowHeliCrashMarker.Value;
-        public bool AllowMiniMap => ServerConfig.AllowMiniMap && Settings.MiniMapEnabled.Value;
         public bool RequireMapInInventory => ServerConfig.RequireMapInInventory || Settings.RequireMapInInventory.Value;
         public int ShowScavIntelLevel => ServerConfig.ShowScavIntelLevel > Settings.ShowScavIntelLevel.Value ? ServerConfig.ShowScavIntelLevel : Settings.ShowScavIntelLevel.Value;
         public int ShowPmcIntelLevel => ServerConfig.ShowPmcIntelLevel > Settings.ShowPmcIntelLevel.Value ? ServerConfig.ShowPmcIntelLevel : Settings.ShowPmcIntelLevel.Value;

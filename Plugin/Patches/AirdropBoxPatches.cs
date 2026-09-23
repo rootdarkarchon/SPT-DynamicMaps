@@ -22,16 +22,16 @@ namespace DynamicMaps.Patches
                 _hasRegisteredEvents = true;
             }
             // thanks to TechHappy for the breadcrumb of what method to patch
-            return AccessTools.Method(typeof(AirdropLogicClass), nameof(AirdropLogicClass.method_3));
+            return AccessTools.Method(typeof(EFT.Airdrop.ClientAirDrop), nameof(EFT.Airdrop.ClientAirDrop.CloseParachute));
         }
 
         [PatchPostfix]
-        public static void PatchPostfix(AirdropLogicClass __instance)
+        public static void PatchPostfix(AirdropSynchronizableObject ____syncObject)
         {
-            if (__instance != null && !Airdrops.Contains(__instance.AirdropSynchronizableObject_0))
+            if (____syncObject != null && !Airdrops.Contains(____syncObject))
             {
-                Airdrops.Add(__instance.AirdropSynchronizableObject_0);
-                OnAirdropLanded?.Invoke(__instance.AirdropSynchronizableObject_0);
+                Airdrops.Add(____syncObject);
+                OnAirdropLanded?.Invoke(____syncObject);
             }
         }
 

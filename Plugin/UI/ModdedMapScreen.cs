@@ -91,7 +91,6 @@ namespace DynamicMaps.UI
         // peek
         private MapPeekComponent _peekComponent;
         private bool IsPeeking => _peekComponent != null && _peekComponent.IsPeeking;
-        private bool ShowingMiniMap => _peekComponent != null && _peekComponent.ShowingMiniMap;
 
         public bool IsShowingMapScreen { get; private set; }
 
@@ -119,9 +118,6 @@ namespace DynamicMaps.UI
         private KeyboardShortcut _zoomMainMapInShortcut;
         private KeyboardShortcut _zoomMainMapOutShortcut;
 
-        private KeyboardShortcut _zoomMiniMapInShortcut;
-        private KeyboardShortcut _zoomMiniMapOutShortcut;
-
         internal static CombinedConfig _config;
 
         private float _zoomMapHotkeySpeed = 2.5f;
@@ -141,12 +137,6 @@ namespace DynamicMaps.UI
             // make our game object hierarchy
             var scrollRectGO = UIUtils.CreateUIGameObject(gameObject, "Scroll");
             var scrollMaskGO = UIUtils.CreateUIGameObject(scrollRectGO, "ScrollMask");
-
-            Settings.MiniMapPosition.SettingChanged += (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapScreenOffsetX.SettingChanged += (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapScreenOffsetY.SettingChanged += (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapSizeX.SettingChanged += (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapSizeY.SettingChanged += (sender, args) => AdjustForMiniMap(false);
 
             _mapView = MapView.Create(scrollMaskGO, "MapView");
 
@@ -207,12 +197,6 @@ namespace DynamicMaps.UI
         {
             GameWorldOnDestroyPatch.OnRaidEnd -= OnRaidEnd;
 
-            Settings.MiniMapPosition.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapScreenOffsetX.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapScreenOffsetY.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapSizeX.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
-            Settings.MiniMapSizeY.SettingChanged -= (sender, args) => AdjustForMiniMap(false);
-
             ReleaseMapBackgroundRenderTexture();
 
             if (_mapBackgroundRenderMaterial != null)
@@ -255,60 +239,46 @@ namespace DynamicMaps.UI
             }
 
             // change level hotkeys
-            if (!ShowingMiniMap)
+            if (_moveMapLevelUpShortcut.BetterIsDown())
             {
-                if (_moveMapLevelUpShortcut.BetterIsDown())
-                {
-                    _levelSelectSlider.ChangeLevelBy(1);
-                }
+                _levelSelectSlider.ChangeLevelBy(1);
+            }
 
-                if (_moveMapLevelDownShortcut.BetterIsDown())
-                {
-                    _levelSelectSlider.ChangeLevelBy(-1);
-                }
+            if (_moveMapLevelDownShortcut.BetterIsDown())
+            {
+                _levelSelectSlider.ChangeLevelBy(-1);
             }
 
             // shift hotkeys
             var shiftMapX = 0f;
             var shiftMapY = 0f;
 
-            if (!ShowingMiniMap)
+            if (_moveMapUpShortcut.BetterIsPressed())
             {
-                if (_moveMapUpShortcut.BetterIsPressed())
-                {
-                    shiftMapY += 1f;
-                }
+                shiftMapY += 1f;
+            }
 
-                if (_moveMapDownShortcut.BetterIsPressed())
-                {
-                    shiftMapY -= 1f;
-                }
+            if (_moveMapDownShortcut.BetterIsPressed())
+            {
+                shiftMapY -= 1f;
+            }
 
-                if (_moveMapLeftShortcut.BetterIsPressed())
-                {
-                    shiftMapX -= 1f;
-                }
+            if (_moveMapLeftShortcut.BetterIsPressed())
+            {
+                shiftMapX -= 1f;
+            }
 
-                if (_moveMapRightShortcut.BetterIsPressed())
-                {
-                    shiftMapX += 1f;
-                }
+            if (_moveMapRightShortcut.BetterIsPressed())
+            {
+                shiftMapX += 1f;
             }
 
             if (shiftMapX != 0f || shiftMapY != 0f)
             {
-                _mapView.ScaledShiftMap(new Vector2(shiftMapX, shiftMapY), _moveMapSpeed * Time.deltaTime, false);
+                _mapView.ScaledShiftMap(new Vector2(shiftMapX, shiftMapY), _moveMapSpeed * Time.deltaTime);
             }
 
-            if (ShowingMiniMap)
-            {
-                OnZoomMini();
-
-            }
-            else
-            {
-                OnZoomMain();
-            }
+            OnZoomMain();
 
             OnCenter();
 
@@ -674,13 +644,7 @@ namespace DynamicMaps.UI
 
         internal void OnMapScreenShow()
         {
-            if (_peekComponent is not null)
-            {
-                _peekComponent.WasMiniMapActive = ShowingMiniMap;
-
-                _peekComponent?.EndPeek();
-                _peekComponent?.EndMiniMap();
-            }
+            _peekComponent?.EndPeek();
 
             IsShowingMapScreen = true;
 
@@ -702,10 +666,6 @@ namespace DynamicMaps.UI
 
             IsShowingMapScreen = false;
 
-            if (_peekComponent is not null && _peekComponent.WasMiniMapActive)
-            {
-                _peekComponent.BeginMiniMap();
-            }
         }
 
         internal void Show(bool playAnimation)
@@ -785,7 +745,6 @@ namespace DynamicMaps.UI
 
             // reset peek and remove reference, it will be destroyed very shortly with parent object
             _peekComponent?.EndPeek();
-            _peekComponent?.EndMiniMap();
 
             Destroy(_peekComponent.gameObject);
             _peekComponent = null;
@@ -927,28 +886,6 @@ namespace DynamicMaps.UI
             _levelSelectSlider.gameObject.SetActive(false);
         }
 
-        private void AdjustForMiniMap(bool playAnimation)
-        {
-            var speed = playAnimation ? 0.35f : 0f;
-
-            var cornerPosition = Settings.MiniMapPosition.Value.ToScreenPos();
-
-            var offset = new Vector2(Settings.MiniMapScreenOffsetX.Value, Settings.MiniMapScreenOffsetY.Value);
-            offset *= Settings.MiniMapPosition.Value.ToScenePivot();
-
-            var size = new Vector2(Settings.MiniMapSizeX.Value, Settings.MiniMapSizeY.Value);
-
-            _scrollMask.GetRectTransform().DOSizeDelta(size, _transitionAnimations ? speed : 0f);
-            _scrollMask.GetRectTransform().DOAnchorPos(offset, _transitionAnimations ? speed : 0f);
-            _scrollMask.GetRectTransform().DOAnchorMin(cornerPosition, _transitionAnimations ? speed : 0f);
-            _scrollMask.GetRectTransform().DOAnchorMax(cornerPosition, _transitionAnimations ? speed : 0f);
-            _scrollMask.GetRectTransform().DOPivot(cornerPosition, _transitionAnimations ? speed : 0f);
-
-            _cursorPositionText.gameObject.SetActive(false);
-            _playerPositionText.gameObject.SetActive(false);
-            _levelSelectSlider.gameObject.SetActive(false);
-        }
-
         private void SyncBackgroundViewportToOverlay()
         {
             if (_scrollMask == null || _mapBackgroundViewportRoot == null || _mapBackgroundCanvas == null)
@@ -992,11 +929,7 @@ namespace DynamicMaps.UI
 
         private void OnShowInRaid(bool playAnimation)
         {
-            if (ShowingMiniMap)
-            {
-                AdjustForMiniMap(playAnimation);
-            }
-            else if (IsPeeking)
+            if (IsPeeking)
             {
                 AdjustForPeek(playAnimation);
             }
@@ -1039,15 +972,13 @@ namespace DynamicMaps.UI
                 _mapView.SelectLevelByCoords(mapPosition);
             }
 
-            // Don't set the map position if we're the mini-map, otherwise it can cause artifacting
-            if (_rememberMapPosition && !ShowingMiniMap && _mapView.MainMapPos != Vector2.zero)
+            if (_rememberMapPosition && _mapView.MainMapPos != Vector2.zero)
             {
                 _mapView.SetMapPos(_mapView.MainMapPos, _transitionAnimations ? 0.35f : 0f);
                 return;
             }
 
-            // Auto centering while the minimap is active here can cause artifacting
-            if (_autoCenterOnPlayerMarker && !ShowingMiniMap)
+            if (_autoCenterOnPlayerMarker)
             {
                 // change zoom to desired level
                 if (_resetZoomOnCenter)
@@ -1056,7 +987,7 @@ namespace DynamicMaps.UI
                 }
 
                 // shift map to player position, Vector3 to Vector2 discards z
-                _mapView.ShiftMapToPlayer(mapPosition, 0, false);
+                _mapView.ShiftMapToPlayer(mapPosition, 0);
             }
         }
 
@@ -1128,7 +1059,7 @@ namespace DynamicMaps.UI
 
         private void OnScroll(float scrollAmount)
         {
-            if (IsPeeking || ShowingMiniMap)
+            if (IsPeeking)
             {
                 return;
             }
@@ -1146,7 +1077,6 @@ namespace DynamicMaps.UI
 
                 return;
             }
-
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 _mapView.RectTransform, Input.mousePosition, null, out Vector2 mouseRelative);
@@ -1181,37 +1111,9 @@ namespace DynamicMaps.UI
             _mapView.SetMapZoom(_mapView.ZoomMain, 0f);
         }
 
-        private void OnZoomMini()
-        {
-            var zoomAmount = 0f;
-
-            if (_zoomMiniMapOutShortcut.BetterIsPressed())
-            {
-                zoomAmount -= 1f;
-            }
-
-            if (_zoomMiniMapInShortcut.BetterIsPressed())
-            {
-                zoomAmount += 1f;
-            }
-
-            if (zoomAmount != 0f)
-            {
-                var player = GameUtils.GetMainPlayer();
-                var mapPosition = MathUtils.ConvertToMapPosition(((IPlayer)player).Position);
-                zoomAmount = _mapView.ZoomMini * zoomAmount * (_zoomMapHotkeySpeed * Time.deltaTime);
-
-                _mapView.IncrementalZoomIntoMiniMap(zoomAmount, mapPosition, 0.0f);
-
-                return;
-            }
-
-            _mapView.SetMapZoom(_mapView.ZoomMini, 0f, false, true);
-        }
-
         private void OnCenter()
         {
-            if (_centerPlayerShortcut.BetterIsDown() || ShowingMiniMap)
+            if (_centerPlayerShortcut.BetterIsDown())
             {
                 var player = GameUtils.GetMainPlayer();
 
@@ -1221,8 +1123,7 @@ namespace DynamicMaps.UI
 
                     _mapView.ShiftMapToCoordinate(
                         mapPosition,
-                        ShowingMiniMap ? 0f : _positionTweenTime,
-                        ShowingMiniMap);
+                        _positionTweenTime);
 
                     _mapView.SelectLevelByCoords(mapPosition);
                 }
@@ -1250,9 +1151,6 @@ namespace DynamicMaps.UI
             _zoomMainMapInShortcut = Settings.ZoomMapInHotkey.Value;
             _zoomMainMapOutShortcut = Settings.ZoomMapOutHotkey.Value;
 
-            _zoomMiniMapInShortcut = Settings.ZoomInMiniMapHotkey.Value;
-            _zoomMiniMapOutShortcut = Settings.ZoomOutMiniMapHotkey.Value;
-
             _zoomMapHotkeySpeed = Settings.ZoomMapHotkeySpeed.Value;
 
             _autoCenterOnPlayerMarker = Settings.AutoCenterOnPlayerMarker.Value;
@@ -1262,20 +1160,17 @@ namespace DynamicMaps.UI
             _autoSelectLevel = Settings.AutoSelectLevel.Value;
             _centeringZoomResetPoint = Settings.CenteringZoomResetPoint.Value;
 
-
             _transitionAnimations = Settings.MapTransitionEnabled.Value;
 
             if (_mapView is not null)
             {
                 _mapView.ZoomMain = Settings.ZoomMainMap.Value;
-                _mapView.ZoomMini = Settings.ZoomMiniMap.Value;
             }
 
             if (_peekComponent is not null)
             {
                 _peekComponent.PeekShortcut = Settings.PeekShortcut.Value;
                 _peekComponent.HoldForPeek = Settings.HoldForPeek.Value;
-                _peekComponent.HideMinimapShortcut = Settings.MiniMapShowOrHide.Value;
             }
 
             AddRemoveMarkerProvider<PlayerMarkerProvider>(_config.ShowPlayerMarker);
@@ -1385,7 +1280,7 @@ namespace DynamicMaps.UI
 
             Plugin.Log.LogInfo("Trying to attach peek component to BattleUI");
 
-            _peekComponent = MapPeekComponent.Create(battleUI.gameObject, _config);
+            _peekComponent = MapPeekComponent.Create(battleUI.gameObject);
             _peekComponent.MapScreen = this;
             _peekComponent.MapScreenTrueParent = ParentTransform;
 

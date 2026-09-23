@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TarkovDir Condition=" '$(TarkovDir)' == '' ">D:\Tarkov-SPT\</TarkovDir>
-    <TarkovDebugDir Condition=" '$(TarkovDebugDir)' == '' ">D:\Tarkov-SPT\</TarkovDebugDir>
+    <TarkovDir Condition=" '$(TarkovDir)' == '' ">D:\Tarkov-SPT-4.1\</TarkovDir>
+    <TarkovDebugDir Condition=" '$(TarkovDebugDir)' == '' ">D:\Tarkov-SPT-4.1\</TarkovDebugDir>
     <TarkovPluginsSPTDir>$(TarkovDir)BepInEx\plugins\spt\</TarkovPluginsSPTDir>
     <TarkovManagedDir>$(TarkovDir)EscapeFromTarkov_Data\Managed\</TarkovManagedDir>
     <TarkovBepInExCoreDir>$(TarkovDir)BepInEx\core\</TarkovBepInExCoreDir>
@@ -46,7 +46,7 @@
       <HintPath>$(TarkovManagedDir)Sirenix.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="Unity.InternalAPIEngineBridge.003">
-      <HintPath>Resources\Unity.InternalAPIEngineBridge.003.dll</HintPath>
+      <HintPath>Libraries\Unity.InternalAPIEngineBridge.003.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Unity.Postprocessing.Runtime">
@@ -56,7 +56,7 @@
       <HintPath>$(TarkovManagedDir)Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VectorGraphics">
-      <HintPath>Resources\Unity.VectorGraphics.dll</HintPath>
+      <HintPath>Libraries\Unity.VectorGraphics.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="UnityEngine">
@@ -141,7 +141,7 @@
     <WriteLinesToFile File="@(VersionCs)" Lines="namespace DynamicMaps{public static class BuildInfo {public const string Version = &quot;$(Version)&quot;%3B}}" />
   </Target>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(DeployOnBuild)' == 'true'">
     <ItemGroup>
       <OutputDLL Include="$(ProjectDir)$(OutDir)$(TargetName).dll" />
       <CommonDLL Include="$(ProjectDir)$(OutDir)$(TargetName).Common.dll" />

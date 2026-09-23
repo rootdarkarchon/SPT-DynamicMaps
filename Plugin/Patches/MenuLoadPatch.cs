@@ -16,9 +16,7 @@ namespace DynamicMaps.Patches
 
         protected override MethodBase GetTargetMethod()
         {
-            return PatchConstants.EftTypes
-                .SingleCustom(x => x.GetField("Taxonomy", BindingFlags.Public | BindingFlags.Instance) != null)
-                .GetMethod("Create", BindingFlags.Public | BindingFlags.Static);
+            return HarmonyLib.AccessTools.Method(typeof(EFT.Version), nameof(EFT.Version.Create));
         }
 
         [PatchPrefix]
@@ -54,7 +52,7 @@ namespace DynamicMaps.Patches
             catch (Exception ex)
             {
                 Plugin.Log.LogError("Failed to load: " + ex.ToString());
-                NotificationManagerClass.DisplayWarningNotification("Failed to load Dynamic Maps server config - check the server");
+                EFT.Communications.NotificationManager.DisplayWarningNotification("Failed to load Dynamic Maps server config - check the server");
                 return null;
             }
         }

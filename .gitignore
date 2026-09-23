@@ -458,3 +458,4 @@ $RECYCLE.BIN/
 # auto generated files specific to this project
 Version.cs
 /Server/Properties/launchSettings.json
+/artifacts/

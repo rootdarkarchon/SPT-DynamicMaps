@@ -1,5 +1,7 @@
 ## About Mod
 
+This checkout targets **SPT 4.1 / EFT 40743**. See [the port notes](../PORT-4.1.md) for combined client/server build, installation, and validation instructions.
+
 An SPT mod that adds a custom in-game map viewer in the place of the BSG map screen. Includes pre-configured maps made by [TarkovData](https://github.com/TarkovTracker/tarkovdata/) and [TarkovDev](https://github.com/the-hideout/tarkov-dev).
 
 #### Full screen out of raid maps with selector

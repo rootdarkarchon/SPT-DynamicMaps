@@ -1,3 +1,4 @@
+using EFT.InventoryLogic;
 using System.IO;
 using System.Linq;
 using DynamicMaps.Data;

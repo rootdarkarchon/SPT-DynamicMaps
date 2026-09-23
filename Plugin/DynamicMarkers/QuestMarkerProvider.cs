@@ -63,7 +63,7 @@ namespace DynamicMaps
 
             var player = GameUtils.GetMainPlayer();
 
-            var markerDefs = QuestUtils.GetMarkerDefsForPlayer(player.AbstractQuestControllerClass);
+            var markerDefs = QuestUtils.GetMarkerDefsForPlayer(player.QuestController);
             foreach (var markerDef in markerDefs)
             {
                 var marker = map.AddMapMarker(markerDef);
@@ -85,15 +85,14 @@ namespace DynamicMaps
             OnHideOutOfRaid(map);
 
             var possibleInternalNames = map.CurrentMapDef.MapInternalNames;
-            var questData = JsonConvert.DeserializeObject<List<ConditionData>>(RequestHandler.GetJson(Routes.GetQuestItemsForMap));
+            var questData = JsonConvert.DeserializeObject<List<ConditionData>>(RequestHandler.GetJson(Routes.GetQuestItemsForMap)) ?? [];
             var data = questData.Where(p => possibleInternalNames.Contains(p.MapName, StringComparer.OrdinalIgnoreCase)).ToList();
 
             QuestUtils.FillQuestDataOutOfRaid(data, map.CurrentMapDef);
 
-            var questController = ((MainMenuControllerClass)typeof(TarkovApplication)
-                .GetField("mainMenuControllerClass", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .GetValue(SPT.Reflection.Utils.ClientAppUtils.GetMainApp()))
-                .QuestController;
+            var menu = HarmonyLib.AccessTools.Field(typeof(TarkovApplication), "_menuOperation")
+                .GetValue(SPT.Reflection.Utils.ClientAppUtils.GetMainApp()) as EFT.MainMenuShowOperation;
+            var questController = menu?.QuestController;
             var markerDefs = QuestUtils.GetMarkerDefsForPlayer(questController);
             foreach (var markerDef in markerDefs)
             {

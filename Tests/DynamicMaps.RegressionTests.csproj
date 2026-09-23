@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SptInstallRoot Condition="'$(SptInstallRoot)' == ''">D:\Tarkov-SPT-4.1</SptInstallRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Server/mpstark-dynamicmaps.csproj" />
+    <Reference Include="SPTarkov.Server.Core"><HintPath>$(SptInstallRoot)/SPT_Runtime/SPTarkov.Server.Core.dll</HintPath></Reference>
+    <Reference Include="SPTarkov.Common"><HintPath>$(SptInstallRoot)/SPT_Runtime/SPTarkov.Common.dll</HintPath></Reference>
+    <Reference Include="SPTarkov.DI"><HintPath>$(SptInstallRoot)/SPT_Runtime/SPTarkov.DI.dll</HintPath></Reference>
+    <Reference Include="Mono.Cecil"><HintPath>$(SptInstallRoot)/BepInEx/core/Mono.Cecil.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
